@@ -50,7 +50,7 @@ Normally, only GPU-dependent modules are problematic.
    
    for i in range(3):
    
-   	# As long as this runs with no problem, gpu support should be ok
+       # As long as this runs with no problem, gpu support should be ok
        clf = xgb.XGBRegressor(
            tree_method='gpu_hist', eta=0.1, max_depth=6, verbosity=0)
        trained_model = clf.fit(X, y, verbose=False)
