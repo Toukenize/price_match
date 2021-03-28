@@ -1,3 +1,4 @@
 .vscode
 data/
 notebook/
+__pycache__/
