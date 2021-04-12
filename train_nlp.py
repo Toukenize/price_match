@@ -6,7 +6,7 @@ import numpy as np
 
 from dotenv import load_dotenv
 from src.model.nlp_model import ShopeeNLPModel
-from src.train.loops import train, validate
+from src.train.loops import train, validate_w_knn
 from src.train.helper import (
     get_train_val_loaders, get_train_val_data, get_model_optim_scheduler)
 from src.config.constants import NLP_CONFIG, NLP_MODEL_PATH
@@ -84,16 +84,17 @@ def main():
         # Init dataloaders and model-related stuff
         train_loader, val_loader = get_train_val_loaders(train_df, val_df)
         num_classes = train_df['label_group'].nunique()
-        model, optimizer, criterion, scheduler = get_model_optim_scheduler(
+        model, optimizer, margin_loss, scheduler = get_model_optim_scheduler(
             ShopeeNLPModel, num_classes, device=DEVICE)
 
         for epoch_num in range(EPOCHS):
 
-            epoch_info = f'Epoch {epoch_num + 1} / {EPOCHS}'
+            epoch_info = f'Fold {fold_num+1}/{splits}, '\
+                f'Epoch {epoch_num+1}/{EPOCHS}'
 
             # Compute & Log Train Losses
             train_losses = train(
-                model, train_loader, optimizer, criterion,
+                model, train_loader, optimizer, margin_loss,
                 device=DEVICE, scheduler=scheduler, epoch_info=epoch_info)
 
             RUN[f'Fold_{fold_num + 1}_Train_Epoch'].log(epoch_num + 1)
@@ -101,22 +102,36 @@ def main():
 
             # Compute & Log F1 Score at val_freq / last epoch
             val_cond = (
-                (((epoch_num % val_freq) == 0) and epoch_num != 0)
+                (
+                    ((epoch_num % val_freq) == 0)
+                    and
+                    (epoch_num != 0)
+                    and
+                    (val_freq > 0)
+                )
                 or
                 (epoch_num + 1 == EPOCHS))
 
             if val_cond:
 
-                val_score, _ = validate(
+                val_score, sim_df, df = validate_w_knn(
                     model, val_loader, thres, device=DEVICE)
 
                 RUN[f'Fold_{fold_num + 1}_Val_Epoch'].log(epoch_num + 1)
                 RUN[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_score)
 
-        # Save model and last epoch preds
+        # Save model and last epoch pred
         torch.save(
             model.state_dict(),
             NLP_MODEL_PATH / f'fold_{fold_num + 1}_model.pt')
+
+        sim_df.to_csv(
+            NLP_MODEL_PATH / f'fold_{fold_num + 1}_pairwise_pred.csv',
+            index=False)
+
+        df.to_csv(
+            NLP_MODEL_PATH / f'fold_{fold_num + 1}_grouped_pred.csv',
+            index=False)
 
     return
 

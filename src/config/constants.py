@@ -1,7 +1,7 @@
 from pathlib import Path
 from torch.optim import lr_scheduler
 from torch import optim
-from src.model.loss_func import ArcMarginCrossEntropy, CosineMarginCrossEntropy
+from src.model.loss_func import CosFace, ArcFace
 
 
 # Data paths
@@ -21,14 +21,14 @@ if not NLP_MODEL_PATH.exists():
     NLP_MODEL_PATH.mkdir()
 
 NLP_CONFIG = {
-    "epochs": 10,
+    "epochs": 15,
     "dropout_prob": 0.2,
     "model_max_length": 64,
     "learning_rate": 1e-4,
     "train_batch_size": 32,
-    "val_batch_size": 64,
-    "loss_fn": "arcmargin",
-    "loss_params": {"m": 0.5, "s": 30.0, "m_cos": 0.3},
+    "val_batch_size": 128,
+    "loss_fn": "arcface",
+    "loss_params": {"m": 0.5, "s": 30.0},
     "optimizer": "adamw",
     "scheduler": "reduce_on_plateau",
     "scheduler_params": {"factor": 0.5, "patience": 2, "min_lr": 1e-5}
@@ -45,6 +45,6 @@ OPTIMIZER_MAPPING = {
 }
 
 LOSS_MAPPING = {
-    'arcmargin': ArcMarginCrossEntropy,
-    'cosmargin': CosineMarginCrossEntropy
+    'arcface': ArcFace,
+    'cosface': CosFace
 }

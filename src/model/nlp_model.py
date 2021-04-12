@@ -8,6 +8,7 @@ class ShopeeNLPModel(nn.Module):
 
         super(ShopeeNLPModel, self).__init__()
         self.model = AutoModel.from_pretrained(model_path)
+        self.tanh = nn.Tanh()
         self.norm = nn.LayerNorm(self.model.config.hidden_size)
         self.dropout = nn.Dropout(dropout_prob)
         self.lin = nn.Linear(self.model.config.hidden_size, num_classes)
@@ -19,6 +20,7 @@ class ShopeeNLPModel(nn.Module):
         x = self.norm(x)
         x = self.dropout(x)
         x = self.lin(x)
+        x = self.tanh(x)
 
         return x
 

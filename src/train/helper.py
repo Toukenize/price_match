@@ -58,7 +58,7 @@ def get_model_optim_scheduler(model_class, num_classes, device):
         params=model.parameters(),
         lr=NLP_CONFIG['learning_rate'])
 
-    criterion = LOSS_MAPPING[NLP_CONFIG['loss_fn']](
+    margin_loss = LOSS_MAPPING[NLP_CONFIG['loss_fn']](
         **NLP_CONFIG['loss_params'])
 
     scheduler_type = NLP_CONFIG['scheduler']
@@ -71,7 +71,7 @@ def get_model_optim_scheduler(model_class, num_classes, device):
     else:
         scheduler = None
 
-    return model, optimizer, criterion, scheduler
+    return model, optimizer, margin_loss, scheduler
 
 
 def get_train_val_loaders(train_df, val_df):

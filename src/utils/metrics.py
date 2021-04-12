@@ -1,5 +1,6 @@
 import faiss
 import numpy as np
+import pandas as pd
 
 
 def row_wise_f1(s1, s2):
@@ -14,7 +15,28 @@ def row_wise_f1(s1, s2):
     return score
 
 
-def cos_dist_faiss(emb_arr, query_idx, thresh=0.99):
+def faiss_knn(emb_arr, query_idx, neighbors=50):
+
+    # Infer feature dimension from emb_arr
+    dim = emb_arr.shape[1]
+
+    # Cast embeddings to float32 (Faiss only support this)
+    emb_arr = emb_arr.astype(np.float32)
+
+    # Normalize the emb arr in place
+    faiss.normalize_L2(emb_arr)
+
+    # Initialize Faiss Index
+    index = faiss.IndexFlatIP(dim)
+    index.add(emb_arr)
+
+    # Find neighbors
+    distances, indices = index.search(emb_arr[query_idx], neighbors)
+
+    return distances, indices
+
+
+def faiss_cos_dist(emb_arr, query_idx, thresh=0.99):
     """
     Given an embedding array and a list of query_idx,
     return the incides and distances of the items with
@@ -48,13 +70,11 @@ class KNNSearch:
 
     """
     This class does the KNN Search, given embeddings.
-
-    TODO : Include pairwise distance in df or alt representation
     """
 
     def __init__(self, df,
                  id_col='posting_id', label_col=None,
-                 val_idx=None, eval_score=True, thres=0.995):
+                 val_idx=None, eval_score=True, neighbors=50, thres=0.995):
 
         # Check and init df
         assert id_col in df.columns, f'{id_col} not found in df'
@@ -84,6 +104,7 @@ class KNNSearch:
 
             self.val_idx = val_idx
 
+        self.neighbors = neighbors
         self.thres = thres
         self.prepare_df()
 
@@ -107,26 +128,42 @@ class KNNSearch:
         assert len(emb) == len(self.df),\
             f'Num of emb {len(emb)} != Num of rows in df {len(self.df)}'
 
-        lims, distances, indices = cos_dist_faiss(
-            emb, self.val_idx, self.thres)
+        distances, indices = faiss_knn(emb, self.val_idx, self.neighbors)
 
-        preds = []
+        self.sim_df = self.df.loc[self.val_idx, [
+            'posting_id']].reset_index(drop=True).copy()
 
-        # Note the that lims always have 1 more element than len(val_idx)
-        for i in range(len(lims) - 1):
+        self.sim_df['neighbors'] = pd.Series(indices.tolist())
+        self.sim_df['distances'] = pd.Series(distances.tolist())
 
-            sim_items = indices[lims[i]:lims[i + 1]]
-            sim_items_set = set(
-                self.idx_to_posting_map[item] for item in sim_items)
-            preds.append(sim_items_set)
+        # Exploding multiple columns of equal len & sequence
+        # https://stackoverflow.com/a/59330040/10841164
+        self.sim_df = (
+            self.sim_df
+            .set_index('posting_id')
+            .apply(pd.Series.explode)
+            .reset_index()
+        )
 
-        self.df.loc[self.val_idx, 'matches'] = preds
+        self.sim_df['matches'] = self.sim_df['neighbors'].map(
+            self.idx_to_posting_map)
 
-        return self.df
+        sel = (self.sim_df['distances'] > self.thres)
+
+        sim_items_sets = (
+            self.sim_df
+            .loc[sel]
+            .groupby('posting_id')
+            ['matches']
+            .apply(lambda x: set(x))
+            .to_dict()
+        )
+
+        self.df['matches'] = self.df['posting_id'].map(sim_items_sets)
 
     def evaluate_score_metric(self, emb):
 
-        _ = self.get_similar_items(emb)
+        self.get_similar_items(emb)
 
         self.df.loc[self.val_idx, 'score'] = (
             self.df
