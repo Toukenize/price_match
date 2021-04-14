@@ -52,7 +52,7 @@ def get_model_optim_scheduler(model_class, num_classes, device):
     num_class needs to be provided.
     """
 
-    torch.seed(2021)  # For reproducibility
+    torch.manual_seed(2021)  # For reproducibility
 
     model = model_class(
         PRETRAINED_NLP_MLM, num_classes, NLP_CONFIG['dropout_prob'])
