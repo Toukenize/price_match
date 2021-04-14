@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from src.config.constants import KNN_CHUNKSIZE
+
 
 def row_wise_f1(s1, s2):
 
@@ -90,7 +92,8 @@ class KNNSearch:
 
     def __init__(self, df,
                  id_col='posting_id', label_col=None,
-                 val_idx=None, eval_score=True, neighbors=50):
+                 val_idx=None, eval_score=True, neighbors=50,
+                 chunksize=KNN_CHUNKSIZE):
 
         # Check and init df
         assert id_col in df.columns, f'{id_col} not found in df'
@@ -105,6 +108,7 @@ class KNNSearch:
         self.label_col = label_col
         self.df = df
         self.eval_score = eval_score
+        self.chunksize = chunksize
 
         # Check and init val_idx
         if val_idx is None:
@@ -144,7 +148,8 @@ class KNNSearch:
         assert len(emb) == len(self.df),\
             f'Num of emb {len(emb)} != Num of rows in df {len(self.df)}'
 
-        distances, indices = faiss_knn(emb, self.val_idx, self.neighbors)
+        distances, indices = faiss_knn(
+            emb, self.val_idx, self.neighbors, self.chunksize)
 
         sim_df_base = self.df.loc[self.val_idx, [
             'posting_id']].reset_index(drop=True).copy()

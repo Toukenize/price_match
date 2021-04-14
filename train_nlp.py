@@ -91,15 +91,10 @@ def main():
 
             # Compute & Log F1 Score at val_freq / last epoch
             val_cond = (
-                (
-                    ((epoch_num % val_freq) == 0)
-                    and
-                    (epoch_num != 0)
-                    and
-                    (val_freq > 0)
-                )
+                ((epoch_num + 1) % val_freq == 0)
                 or
-                (epoch_num + 1 == EPOCHS))
+                (epoch_num + 1 == EPOCHS)
+            )
 
             if val_cond:
 

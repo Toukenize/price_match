@@ -18,9 +18,9 @@ NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_v2'
 
 if not NLP_MODEL_PATH.exists():
     NLP_MODEL_PATH.mkdir()
-else:
-    # Lazy hack to avoid accidental overwritting of folder
-    raise BaseException(f'Directory {NLP_MODEL_PATH} already exists.')
+
+# KNN Chunksize
+KNN_CHUNKSIZE = 512
 
 NLP_CONFIG = {
     "epochs": 3,
