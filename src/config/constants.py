@@ -3,7 +3,6 @@ from torch.optim import lr_scheduler
 from torch import optim
 from src.model.loss_func import CosFace, ArcFace
 
-
 # Data paths
 DATA_FOLDER = Path('data/raw')
 TRAIN_IMG_FOLDER = DATA_FOLDER / 'train_images'
@@ -15,13 +14,16 @@ PRETRAINED_NLP_MLM = MODEL_FOLDER / 'indobert_lite_p2' / 'mlm_checkpoint'
 PRETRAINED_TOKENIZER = MODEL_FOLDER / 'indobert_lite_p2' / 'tokenizer'
 
 # Output paths
-NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model'
+NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_v2'
 
 if not NLP_MODEL_PATH.exists():
     NLP_MODEL_PATH.mkdir()
+else:
+    # Lazy hack to avoid accidental overwritting of folder
+    raise BaseException(f'Directory {NLP_MODEL_PATH} already exists.')
 
 NLP_CONFIG = {
-    "epochs": 30,
+    "epochs": 3,
     "dropout_prob": 0.2,
     "model_max_length": 64,
     "learning_rate": 5e-5,

@@ -1,6 +1,7 @@
 import faiss
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 def row_wise_f1(s1, s2):
@@ -15,7 +16,7 @@ def row_wise_f1(s1, s2):
     return score
 
 
-def faiss_knn(emb_arr, query_idx, neighbors=50):
+def faiss_knn(emb_arr, query_idx, neighbors=50, chunksize=512):
 
     # Infer feature dimension from emb_arr
     dim = emb_arr.shape[1]
@@ -31,9 +32,24 @@ def faiss_knn(emb_arr, query_idx, neighbors=50):
     index.add(emb_arr)
 
     # Find neighbors
-    distances, indices = index.search(emb_arr[query_idx], neighbors)
 
-    return distances, indices
+    chunks = np.ceil(len(query_idx) / chunksize).astype(int)
+
+    for i in tqdm(range(chunks), total=chunks, desc='Finding Neighbours'):
+
+        query_idx_sub = query_idx[i*chunksize:(i+1)*chunksize]
+
+        chunk_dists, chunk_indices = index.search(
+            emb_arr[query_idx_sub], neighbors)
+
+        if i == 0:
+            dists = chunk_dists
+            indices = chunk_indices
+        else:
+            dists = np.row_stack([dists, chunk_dists])
+            indices = np.row_stack([indices, chunk_indices])
+
+    return dists, indices
 
 
 def faiss_cos_dist(emb_arr, query_idx, thresh=0.99):
@@ -74,7 +90,7 @@ class KNNSearch:
 
     def __init__(self, df,
                  id_col='posting_id', label_col=None,
-                 val_idx=None, eval_score=True, neighbors=50, thres=0.995):
+                 val_idx=None, eval_score=True, neighbors=50):
 
         # Check and init df
         assert id_col in df.columns, f'{id_col} not found in df'
@@ -105,8 +121,8 @@ class KNNSearch:
             self.val_idx = val_idx
 
         self.neighbors = neighbors
-        self.thres = thres
         self.prepare_df()
+        self.sim_df = None
 
     def prepare_df(self):
 
@@ -130,8 +146,12 @@ class KNNSearch:
 
         distances, indices = faiss_knn(emb, self.val_idx, self.neighbors)
 
-        self.sim_df = self.df.loc[self.val_idx, [
+        sim_df_base = self.df.loc[self.val_idx, [
             'posting_id']].reset_index(drop=True).copy()
+        sim_df_base['neighbors'] = self.val_idx
+        sim_df_base['distances'] = 1.0
+
+        self.sim_df = sim_df_base.copy()
 
         self.sim_df['neighbors'] = pd.Series(indices.tolist())
         self.sim_df['distances'] = pd.Series(distances.tolist())
@@ -145,10 +165,20 @@ class KNNSearch:
             .reset_index()
         )
 
+        # This step makes sure each item should at least be its own neighbour
+        self.sim_df = (
+            sim_df_base
+            .append(self.sim_df)
+            .drop_duplicates(subset=['posting_id', 'neighbors'])
+            .reset_index(drop=True)
+        )
+
         self.sim_df['matches'] = self.sim_df['neighbors'].map(
             self.idx_to_posting_map)
 
-        sel = (self.sim_df['distances'] > self.thres)
+    def eval_score_at_thres(self, thres):
+
+        sel = (self.sim_df['distances'] > thres)
 
         sim_items_sets = (
             self.sim_df
@@ -159,16 +189,14 @@ class KNNSearch:
             .to_dict()
         )
 
-        self.df['matches'] = self.df['posting_id'].map(sim_items_sets)
+        df_out = self.df.loc[self.val_idx].copy()
 
-    def evaluate_score_metric(self, emb):
-
-        self.get_similar_items(emb)
-
-        self.df.loc[self.val_idx, 'score'] = (
-            self.df
-            .loc[self.val_idx]
+        df_out['matches'] = df_out['posting_id'].map(sim_items_sets)
+        df_out['score'] = (
+            df_out
             .apply(lambda x: row_wise_f1(x.matches, x.ground_truth), axis=1)
         )
 
-        return self.df.loc[self.val_idx, 'score'].mean()
+        score = df_out['score'].mean()
+
+        return score, df_out

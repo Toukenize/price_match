@@ -1,4 +1,6 @@
 import pandas as pd
+import torch
+
 from src.data.nlp_dataset import get_data_loader
 from src.config.constants import (
     DATA_SPLIT_PATH, PRETRAINED_NLP_MLM, PRETRAINED_TOKENIZER,
@@ -49,6 +51,9 @@ def get_model_optim_scheduler(model_class, num_classes, device):
     Since the number of classes varies across splits,
     num_class needs to be provided.
     """
+
+    torch.seed(2021)  # For reproducibility
+
     model = model_class(
         PRETRAINED_NLP_MLM, num_classes, NLP_CONFIG['dropout_prob'])
 

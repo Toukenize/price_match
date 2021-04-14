@@ -40,7 +40,8 @@ def train(model, dataloader, optimizer, margin_loss, device, scheduler=None,
     return losses
 
 
-def validate_w_knn(model, dataloader, thres, device):
+def validate_w_knn(model, dataloader, device,
+                   thres_min=0.3, thres_max=0.8, thres_step=0.02):
 
     model.eval()
     pbar = tqdm(
@@ -69,14 +70,22 @@ def validate_w_knn(model, dataloader, thres, device):
 
     knn = KNNSearch(
         dataloader.dataset.df, label_col='label_group',
-        val_idx=val_idx, thres=thres)
+        val_idx=val_idx)
 
-    score = knn.evaluate_score_metric(emb_arr)
-    sim_df = knn.sim_df
-    df = knn.df
+    knn.get_similar_items(emb_arr)
+
+    best_score, best_thres = -1., -1.
+
+    for thres in np.arange(thres_min, thres_max+0.01, thres_step):
+
+        score, _ = knn.eval_score_at_thres(thres)
+
+        if score > best_score:
+            best_score = score
+            best_thres = thres
 
     # Clean up
-    del emb_arr, knn
+    del emb_arr
     gc.collect()
 
-    return score, sim_df, df
+    return best_score, best_thres, knn.sim_df, knn.df

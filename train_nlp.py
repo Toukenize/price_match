@@ -51,13 +51,6 @@ def parse_args():
             Default = 1.0
             """
     )
-    parser.add_argument(
-        '--thres', type=float, default=0.995,
-        help="""
-            Specify the cosine distance thres for validation (between 0 & 1).
-            Default = 0.995
-            """
-    )
     args = parser.parse_args()
 
     return args
@@ -70,9 +63,6 @@ def main():
     splits = args.splits
     val_freq = args.val_freq
     sample = args.sample
-    thres = args.thres
-
-    RUN['params/knn_thres'] = thres
 
     for fold_num in range(splits):
 
@@ -97,7 +87,6 @@ def main():
                 model, train_loader, optimizer, margin_loss,
                 device=DEVICE, scheduler=scheduler, epoch_info=epoch_info)
 
-            RUN[f'Fold_{fold_num + 1}_Train_Epoch'].log(epoch_num + 1)
             RUN[f'Fold_{fold_num + 1}_Train_Loss'].log(np.mean(train_losses))
 
             # Compute & Log F1 Score at val_freq / last epoch
@@ -114,15 +103,16 @@ def main():
 
             if val_cond:
 
-                val_score, sim_df, df = validate_w_knn(
-                    model, val_loader, thres, device=DEVICE)
+                val_score, best_thres, sim_df, df = validate_w_knn(
+                    model, val_loader, device=DEVICE)
 
-                RUN[f'Fold_{fold_num + 1}_Val_Epoch'].log(epoch_num + 1)
+                RUN['params/knn_thres'] = best_thres
+
                 RUN[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_score)
 
         # Save model and last epoch pred
         torch.save(
-            model.state_dict(),
+            model,
             NLP_MODEL_PATH / f'fold_{fold_num + 1}_model.pt')
 
         sim_df.to_csv(
