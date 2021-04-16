@@ -18,11 +18,11 @@ PROJ_NAME = os.environ.get('PROJECT_NAME')
 RUN = neptune.init(project=PROJ_NAME, api_token=API_TOKEN,
                    tags=['NLP'], source_files='**/*.py',
                    description='Finetuning pretrained NLP with margin loss.')
-RUN['params'] = NLP_CONFIG
+RUN['params'] = NLP_CONFIG.dict()
 
 # Init other training params
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-EPOCHS = NLP_CONFIG['epochs']
+EPOCHS = NLP_CONFIG.epochs
 
 
 def parse_args():
@@ -70,6 +70,7 @@ def main():
         train_df, val_df = get_train_val_data(fold_num, splits)
         if sample != 1.0:
             train_df = train_df.sample(frac=sample, random_state=2021)
+            val_df = val_df.sample(frac=sample, random_state=2021)
 
         # Init dataloaders and model-related stuff
         train_loader, val_loader = get_nlp_train_val_loaders(

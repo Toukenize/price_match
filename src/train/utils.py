@@ -101,7 +101,7 @@ def get_model_optim_scheduler(config: ModelConfig,
     torch.manual_seed(2021)  # For reproducibility
 
     model = model_class(
-        config.pre, num_classes, config.dropout_prob)
+        config.pretrained_model_folder, num_classes, config.dropout_prob)
 
     model = model.to(device)
 
