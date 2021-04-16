@@ -41,10 +41,10 @@ class PriceMatchImgData(Dataset):
         return data
 
 
-def get_train_transforms(height, width):
+def get_train_transforms(img_dim):
 
     trans = a.Compose([
-        a.Resize(height, width, always_apply=True),
+        a.Resize(img_dim, img_dim, always_apply=True),
         a.HorizontalFlip(p=0.5),
         a.VerticalFlip(p=0.5),
         a.Rotate(limit=120, p=0.8),
@@ -56,10 +56,10 @@ def get_train_transforms(height, width):
     return trans
 
 
-def get_val_transforms(height, width):
+def get_val_transforms(img_dim):
 
     trans = a.Compose([
-        a.Resize(height, width, always_apply=True),
+        a.Resize(img_dim, img_dim, always_apply=True),
         a.Normalize(),
         ToTensorV2(),
     ])
@@ -69,7 +69,7 @@ def get_val_transforms(height, width):
 
 def get_data_loader(
         df,
-        img_height, img_width,
+        img_dim,
         img_folder,
         img_path_col='image',
         label_col=None,
@@ -77,11 +77,9 @@ def get_data_loader(
         batch_size=32):
 
     if label_col is None:
-        print(f'label_col is {label_col}, getting VAL tranfroms')
-        transforms = get_val_transforms(img_height, img_width)
+        transforms = get_val_transforms(img_dim)
     else:
-        print(f'label_col is {label_col}, getting TRAIN tranfroms')
-        transforms = get_train_transforms(img_height, img_width)
+        transforms = get_train_transforms(img_dim)
 
     dataset = PriceMatchImgData(
         df, img_folder, transforms, img_path_col, label_col)

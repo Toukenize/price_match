@@ -1,5 +1,5 @@
 import warnings
-from pydantic import BaseModel, validator, DirectoryPath
+from pydantic import BaseModel, validator, DirectoryPath, FilePath
 from typing import Dict, Union, Optional
 
 
@@ -15,7 +15,6 @@ class ModelConfig(BaseModel):
     optimizer: str
     loss_fn: str
     loss_params: Optional[Dict]
-    pretrained_model_folder: DirectoryPath
 
     @validator('scheduler')
     def check_scheduler(cls, v):
@@ -46,7 +45,9 @@ class ModelConfig(BaseModel):
 class NLPConfig(ModelConfig):
     model_max_length: int
     pretrained_tokenizer_folder: DirectoryPath
+    pretrained_model_folder: DirectoryPath
 
 
 class IMGConfig(ModelConfig):
     img_dim: int
+    pretrained_model_path: FilePath

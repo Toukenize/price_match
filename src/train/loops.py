@@ -51,9 +51,9 @@ def validate_w_knn(model, dataloader, device,
         desc='>> Generating embeddings for validation'
     )
     batch_size = dataloader.batch_size
-    hidden_size = model.hidden_size
+    feature_dim = model.feature_dim
     emb_arr = np.zeros(
-        (len(dataloader.dataset), hidden_size), dtype=np.float32)
+        (len(dataloader.dataset), feature_dim), dtype=np.float32)
 
     for i, data in pbar:
 

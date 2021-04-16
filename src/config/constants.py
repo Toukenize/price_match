@@ -10,7 +10,8 @@ DATA_SPLIT_PATH = DATA_FOLDER / 'train_split.csv'
 MODEL_FOLDER = Path('model')
 PRETRAINED_NLP_MLM = MODEL_FOLDER / 'indobert_lite_p2' / 'mlm_checkpoint'
 PRETRAINED_TOKENIZER = MODEL_FOLDER / 'indobert_lite_p2' / 'tokenizer'
-PRETRAINED_EFF_B3 = MODEL_FOLDER / 'efficient_net_b3'
+PRETRAINED_EFF_B3 = (MODEL_FOLDER / 'efficient_net_b3' /
+                     'pretrained' / 'efficientnet_b3.pth')
 
 # Output paths
 NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_test_refactor'
@@ -48,8 +49,8 @@ IMG_CONFIG = IMGConfig(
     epochs=100,
     dropout_prob=0.2,
     learning_rate=3e-5,
-    train_batch_size=64,
-    val_batch_size=512,
+    train_batch_size=16,
+    val_batch_size=32,
     scheduler='reduce_on_plateau',
     scheduler_params={
         "factor": 0.5,
@@ -58,6 +59,6 @@ IMG_CONFIG = IMGConfig(
     optimizer='adamw',
     loss_fn='arcface',
     loss_params={"m": 0.5, "s": 30.0},
-    pretrained_model_folder=PRETRAINED_EFF_B3,
-    img_dim=384
+    pretrained_model_path=PRETRAINED_EFF_B3,
+    img_dim=256
 )

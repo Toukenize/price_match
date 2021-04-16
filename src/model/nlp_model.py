@@ -12,7 +12,7 @@ class ShopeeNLPModel(nn.Module):
         self.norm = nn.LayerNorm(self.model.config.hidden_size)
         self.dropout = nn.Dropout(dropout_prob)
         self.lin = nn.Linear(self.model.config.hidden_size, num_classes)
-        self.hidden_size = self.model.config.hidden_size
+        self.feature_dim = self.model.config.hidden_size
 
     def forward(self, **data):
 

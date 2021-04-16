@@ -5,7 +5,7 @@ import torch.nn as nn
 from src.data import nlp_dataset, img_dataset
 from src.model.loss_func import ArcFace, CosFace
 from src.config.base_model_config import ModelConfig, NLPConfig
-from src.config.constants import DATA_SPLIT_PATH
+from src.config.constants import DATA_SPLIT_PATH, TRAIN_IMG_FOLDER
 
 
 def get_train_val_data(fold_num, total_splits=8, data_col='title'):
@@ -88,22 +88,14 @@ def get_loss_fn(config: ModelConfig):
     return loss_fn
 
 
-def get_model_optim_scheduler(config: ModelConfig,
-                              model_class: nn.Module, num_classes: int,
-                              device: str):
+def get_optim_scheduler(config: ModelConfig,
+                        model: nn.Module):
     """
     Function to load model, optimizer and scheduler.
 
     Since the number of classes varies across splits,
     num_class needs to be provided.
     """
-
-    torch.manual_seed(2021)  # For reproducibility
-
-    model = model_class(
-        config.pretrained_model_folder, num_classes, config.dropout_prob)
-
-    model = model.to(device)
 
     optimizer = get_optimizer(
         config, params=model.parameters(), lr=config.learning_rate)
@@ -112,7 +104,7 @@ def get_model_optim_scheduler(config: ModelConfig,
 
     scheduler = get_scheduler(config, optimizer=optimizer)
 
-    return model, optimizer, margin_loss, scheduler
+    return optimizer, margin_loss, scheduler
 
 
 def get_nlp_train_val_loaders(
@@ -141,11 +133,16 @@ def get_img_train_val_loaders(
         val_df: pd.DataFrame):
 
     train_loader = img_dataset.get_data_loader(
-        train_df, text_col='title', label_col='label_group',
+        train_df,
+        img_dim=img_config.img_dim,
+        img_folder=TRAIN_IMG_FOLDER,
+        img_path_col='image', label_col='label_group',
         shuffle=True, batch_size=img_config.train_batch_size)
 
     val_loader = img_dataset.get_data_loader(
-        val_df, text_col='title', label_col=None,
+        val_df, img_dim=img_config.img_dim,
+        img_folder=TRAIN_IMG_FOLDER,
+        img_path_col='image', label_col=None,
         shuffle=False, batch_size=img_config.val_batch_size)
 
     return train_loader, val_loader
