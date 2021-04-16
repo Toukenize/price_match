@@ -3,7 +3,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
-from src.utils.metrics import KNNSearch
+
+from src.metrics.utils import KNNSearch
 
 
 def train(model, dataloader, optimizer, margin_loss, device, scheduler=None,

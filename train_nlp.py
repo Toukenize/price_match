@@ -7,8 +7,8 @@ import numpy as np
 from dotenv import load_dotenv
 from src.model.nlp_model import ShopeeNLPModel
 from src.train.loops import train, validate_w_knn
-from src.train.helper import (
-    get_train_val_loaders, get_train_val_data, get_model_optim_scheduler)
+from src.train.utils import (
+    get_nlp_train_val_loaders, get_train_val_data, get_model_optim_scheduler)
 from src.config.constants import NLP_CONFIG, NLP_MODEL_PATH
 
 # Init neptune logger
@@ -72,10 +72,11 @@ def main():
             train_df = train_df.sample(frac=sample, random_state=2021)
 
         # Init dataloaders and model-related stuff
-        train_loader, val_loader = get_train_val_loaders(train_df, val_df)
+        train_loader, val_loader = get_nlp_train_val_loaders(
+            NLP_CONFIG, train_df, val_df)
         num_classes = train_df['label_group'].nunique()
         model, optimizer, margin_loss, scheduler = get_model_optim_scheduler(
-            ShopeeNLPModel, num_classes, device=DEVICE)
+            NLP_CONFIG, ShopeeNLPModel, num_classes, device=DEVICE)
 
         for epoch_num in range(EPOCHS):
 

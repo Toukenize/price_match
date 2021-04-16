@@ -4,7 +4,7 @@ from transformers import BertTokenizerFast
 from src.data.utils import encode_label
 
 
-class PriceMatchNLPData(Dataset):
+class PriceMatchImgData(Dataset):
 
     def __init__(
             self, df,
@@ -50,7 +50,7 @@ def get_data_loader(
         batch_size=32,
         **tokenizer_args):
 
-    dataset = PriceMatchNLPData(df, text_col, label_col, **tokenizer_args)
+    dataset = PriceMatchImgData(df, text_col, label_col, **tokenizer_args)
     dataloader = DataLoader(dataset, shuffle=shuffle,
                             batch_size=batch_size, num_workers=os.cpu_count())
 
