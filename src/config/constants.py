@@ -1,5 +1,5 @@
 from pathlib import Path
-from src.config.base_model_config import NLPConfig, ModelConfig
+from src.config.base_model_config import NLPConfig, IMGConfig
 
 # Data paths
 DATA_FOLDER = Path('data/raw')
@@ -44,19 +44,20 @@ NLP_CONFIG = NLPConfig(
 )
 
 # IMG Configs
-# IMG_CONFIG = ModelConfig(
-#     epochs=100,
-#     dropout_prob=0.2,
-#     learning_rate=3e-5,
-#     train_batch_size=64,
-#     val_batch_size=512,
-#     scheduler='reduce_on_plateau',
-#     scheduler_params={
-#         "factor": 0.5,
-#         "patience": 2,
-#         "min_lr": 5e-6},
-#     optimizer='adamw',
-#     loss_fn='arcface',
-#     loss_params={"m": 0.5, "s": 30.0},
-#     pretrained_model_folder=PRETRAINED_EFF_B3,
-# )
+IMG_CONFIG = IMGConfig(
+    epochs=100,
+    dropout_prob=0.2,
+    learning_rate=3e-5,
+    train_batch_size=64,
+    val_batch_size=512,
+    scheduler='reduce_on_plateau',
+    scheduler_params={
+        "factor": 0.5,
+        "patience": 2,
+        "min_lr": 5e-6},
+    optimizer='adamw',
+    loss_fn='arcface',
+    loss_params={"m": 0.5, "s": 30.0},
+    pretrained_model_folder=PRETRAINED_EFF_B3,
+    img_dim=384
+)

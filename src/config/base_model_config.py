@@ -46,3 +46,7 @@ class ModelConfig(BaseModel):
 class NLPConfig(ModelConfig):
     model_max_length: int
     pretrained_tokenizer_folder: DirectoryPath
+
+
+class IMGConfig(ModelConfig):
+    img_dim: int
