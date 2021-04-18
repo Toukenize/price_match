@@ -15,18 +15,18 @@ PRETRAINED_EFF_B3 = (MODEL_FOLDER / 'efficient_net_b3' /
 
 # Output paths
 NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_test_refactor'
-IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b3' / 'emb_model_v1'
+IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b3' / 'emb_model_test_refactor'
 
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
     if not path.exists():
         path.mkdir(parents=True)
 
 # KNN Chunksize
-KNN_CHUNKSIZE = 512
+KNN_CHUNKSIZE = 1024
 
 # NLP Configs
 NLP_CONFIG = NLPConfig(
-    epochs=3,
+    epochs=10,
     dropout_prob=0.2,
     learning_rate=3e-5,
     train_batch_size=32,
@@ -46,7 +46,7 @@ NLP_CONFIG = NLPConfig(
 
 # IMG Configs
 IMG_CONFIG = IMGConfig(
-    epochs=120,
+    epochs=10,
     dropout_prob=0.2,
     learning_rate=8e-5,
     train_batch_size=16,

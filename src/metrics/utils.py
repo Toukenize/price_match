@@ -4,7 +4,6 @@ import pandas as pd
 from tqdm import tqdm
 
 from typing import Set, List, Tuple, Dict
-from src.config.constants import KNN_CHUNKSIZE
 
 
 def row_wise_f1(s1: Set, s2: Set) -> float:
@@ -23,7 +22,7 @@ def faiss_knn(
         emb_arr: np.ndarray,
         query_idx: List,
         neighbors: int = 50,
-        chunksize: int = KNN_CHUNKSIZE) -> Tuple[np.ndarray, np.ndarray]:
+        chunksize: int = 512) -> Tuple[np.ndarray, np.ndarray]:
 
     # Infer feature dimension from emb_arr
     dim = emb_arr.shape[1]

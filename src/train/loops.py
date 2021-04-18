@@ -4,11 +4,12 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 
-from src.metrics.utils import KNNSearch
+from src.data.utils import generate_idx_to_col_map, group_labels
+from src.metrics.utils import get_similar_items, find_best_score
 
 
-def train(model, dataloader, optimizer, margin_loss, device, scheduler=None,
-          epoch_info=''):
+def train_loop(model, dataloader, optimizer, margin_loss, device,
+               scheduler=None, epoch_info=''):
 
     criterion = nn.CrossEntropyLoss()
     model.train()
@@ -69,24 +70,26 @@ def generate_embeddings(model, dataloader, device, feature_dim):
 
 
 def validate_w_knn(model, dataloader, device,
-                   feature_dim=768, find_best_score=True, **knn_params):
+                   feature_dim=768, optimize=True, **knn_params):
 
     emb_arr = generate_embeddings(model, dataloader, device, feature_dim)
-    val_idx = dataloader.dataset.df.query('val_set == True').index.tolist()
+    val_df = dataloader.dataset.df.copy()
+    val_df = group_labels(val_df)
+    idx_to_id_mapping = generate_idx_to_col_map(val_df)
+    val_idx = val_df.query('val_set == True').index.tolist()
 
-    knn = KNNSearch(
-        dataloader.dataset.df, label_col='label_group',
-        val_idx=val_idx, **knn_params)
-
-    knn.get_similar_items(emb_arr)
+    sim_df = get_similar_items(
+        val_df, emb_arr,
+        val_idx, idx_to_id_mapping, **knn_params)
 
     # Clean up
     del emb_arr
     gc.collect()
 
-    if find_best_score:
-        best_score, best_thres = knn.find_best_score()
-        return best_score, best_thres, knn.sim_df, knn.df
+    if optimize:
+        best_score, best_thres = find_best_score(
+            sim_df=sim_df, truth_df=val_df.query('val_set == True'))
+        return best_score, best_thres, sim_df
 
     else:
-        return knn.sim_df, knn.df
+        return sim_df
