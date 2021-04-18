@@ -41,17 +41,15 @@ def train(model, dataloader, optimizer, margin_loss, device, scheduler=None,
     return losses
 
 
-def validate_w_knn(model, dataloader, device,
-                   thres_min=0.3, thres_max=0.8, thres_step=0.02):
+def generate_embeddings(model, dataloader, device, feature_dim):
 
     model.eval()
     pbar = tqdm(
         enumerate(dataloader),
         total=len(dataloader),
-        desc='>> Generating embeddings for validation'
+        desc='>> Generating embeddings'
     )
     batch_size = dataloader.batch_size
-    feature_dim = model.feature_dim
     emb_arr = np.zeros(
         (len(dataloader.dataset), feature_dim), dtype=np.float32)
 
@@ -67,26 +65,28 @@ def validate_w_knn(model, dataloader, device,
 
         emb_arr[i*batch_size:(i+1)*batch_size] = features
 
+    return emb_arr
+
+
+def validate_w_knn(model, dataloader, device,
+                   feature_dim=768, find_best_score=True, **knn_params):
+
+    emb_arr = generate_embeddings(model, dataloader, device, feature_dim)
     val_idx = dataloader.dataset.df.query('val_set == True').index.tolist()
 
     knn = KNNSearch(
         dataloader.dataset.df, label_col='label_group',
-        val_idx=val_idx)
+        val_idx=val_idx, **knn_params)
 
     knn.get_similar_items(emb_arr)
-
-    best_score, best_thres = -1., -1.
-
-    for thres in np.arange(thres_min, thres_max+0.01, thres_step):
-
-        score, _ = knn.eval_score_at_thres(thres)
-
-        if score > best_score:
-            best_score = score
-            best_thres = thres
 
     # Clean up
     del emb_arr
     gc.collect()
 
-    return best_score, best_thres, knn.sim_df, knn.df
+    if find_best_score:
+        best_score, best_thres = knn.find_best_score()
+        return best_score, best_thres, knn.sim_df, knn.df
+
+    else:
+        return knn.sim_df, knn.df

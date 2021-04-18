@@ -8,6 +8,16 @@ from src.config.base_model_config import ModelConfig, NLPConfig
 from src.config.constants import DATA_SPLIT_PATH, TRAIN_IMG_FOLDER
 
 
+def get_holdout_data(data_col='title'):
+
+    cols_req = [data_col, 'label_group']
+    df = pd.read_csv(DATA_SPLIT_PATH)
+    df['val_set'] = False
+    df.loc[df['split'] == 'holdout', 'val_set'] = True
+
+    return df[cols_req + ['val_set', 'posting_id']]
+
+
 def get_train_val_data(fold_num, total_splits=8, data_col='title'):
     """
     Note that the splits is GroupedKFold, thus the

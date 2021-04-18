@@ -46,9 +46,9 @@ NLP_CONFIG = NLPConfig(
 
 # IMG Configs
 IMG_CONFIG = IMGConfig(
-    epochs=100,
+    epochs=120,
     dropout_prob=0.2,
-    learning_rate=3e-5,
+    learning_rate=8e-5,
     train_batch_size=16,
     val_batch_size=32,
     scheduler='reduce_on_plateau',

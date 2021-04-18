@@ -3,10 +3,11 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from typing import Set, List, Tuple, Dict
 from src.config.constants import KNN_CHUNKSIZE
 
 
-def row_wise_f1(s1, s2):
+def row_wise_f1(s1: Set, s2: Set) -> float:
 
     assert type(s1) is set, 's1 must be a set.'
     assert type(s2) is set, 's2 must be a set.'
@@ -18,7 +19,11 @@ def row_wise_f1(s1, s2):
     return score
 
 
-def faiss_knn(emb_arr, query_idx, neighbors=50, chunksize=512):
+def faiss_knn(
+        emb_arr: np.ndarray,
+        query_idx: List,
+        neighbors: int = 50,
+        chunksize: int = KNN_CHUNKSIZE) -> Tuple[np.ndarray, np.ndarray]:
 
     # Infer feature dimension from emb_arr
     dim = emb_arr.shape[1]
@@ -37,7 +42,7 @@ def faiss_knn(emb_arr, query_idx, neighbors=50, chunksize=512):
 
     chunks = np.ceil(len(query_idx) / chunksize).astype(int)
 
-    for i in tqdm(range(chunks), total=chunks, desc='Finding Neighbours'):
+    for i in tqdm(range(chunks), total=chunks, desc='>> Finding Neighbours'):
 
         query_idx_sub = query_idx[i*chunksize:(i+1)*chunksize]
 
@@ -54,7 +59,11 @@ def faiss_knn(emb_arr, query_idx, neighbors=50, chunksize=512):
     return dists, indices
 
 
-def faiss_cos_dist(emb_arr, query_idx, thresh=0.99):
+def faiss_cos_dist(
+        emb_arr: np.ndarray,
+        query_idx: List,
+        thresh: float = 0.99
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Given an embedding array and a list of query_idx,
     return the incides and distances of the items with
@@ -84,124 +93,125 @@ def faiss_cos_dist(emb_arr, query_idx, thresh=0.99):
     return lims, distances, indices
 
 
-class KNNSearch:
-
+def get_similar_items(
+        df: pd.DataFrame, emb: np.ndarray, val_idx: List,
+        idx_to_id_col_mapping: Dict, id_col: str = 'posting_id',
+        n: int = 50, chunksize: int = 512) -> pd.DataFrame:
     """
-    This class does the KNN Search, given embeddings.
+    Given a `df`, its embeddings `emb` (must be of the same length as `df`),
+    and the `val_idx` (row index for validation, must correspond to the
+    indices in `df`), find the number of closest `n` neighbors in batches
+    using `chunksize`.
+
+    `id_col` is the item id that is used to identify the neighbors, and
+    `idx_to_id_col_mapping` is the row index to id mapping to map the nearest
+    neighbors index (returned by faiss) to the actual item id
+
+    After search, a similarity df `sim_df` is returned, which contains the
+    row index, distance and item id of each row's top n neighbors.
+    """
+    assert len(emb) == len(df),\
+        f'Num of emb {len(emb)} != Num of rows in df {len(df)}'
+    assert type(val_idx) is list, 'val_idx must be a list'
+    assert len(set(val_idx)) < len(df),\
+        f'Num of elements in val_idx {len(set(val_idx))}'\
+        f' > df len {len(df)}'
+    assert max(val_idx) < len(df),\
+        f'{max(val_idx)} is out of range for'\
+        f'df of shape {df.shape}'
+
+    distances, indices = faiss_knn(
+        emb, val_idx, n, chunksize)
+
+    sim_df_base = df.loc[val_idx, [id_col]].reset_index(drop=True).copy()
+    sim_df_base['neighbors'] = val_idx
+    sim_df_base['distances'] = 1.0
+
+    sim_df = sim_df_base.copy()
+
+    sim_df['neighbors'] = pd.Series(indices.tolist())
+    sim_df['distances'] = pd.Series(distances.tolist())
+
+    # Exploding multiple columns of equal len & sequence
+    # https://stackoverflow.com/a/59330040/10841164
+    sim_df = (
+        sim_df
+        .set_index(id_col)
+        .apply(pd.Series.explode)
+        .reset_index()
+    )
+
+    # This step makes sure each item should at least be its own neighbour
+    sim_df = (
+        sim_df_base
+        .append(sim_df)
+        .drop_duplicates(subset=[id_col, 'neighbors'])
+        .reset_index(drop=True)
+    )
+
+    sim_df['matches'] = sim_df['neighbors'].map(idx_to_id_col_mapping)
+
+    return sim_df
+
+
+def find_best_score(
+        sim_df: pd.DataFrame, truth_df: pd.DataFrame,
+        thres_min: float = 0.2, thres_max: float = 0.9,
+        thres_step: float = 0.02) -> Tuple[float, float]:
+
+    best_score, best_thres = -1., -1.
+
+    for thres in tqdm(np.arange(thres_min, thres_max+0.01, thres_step),
+                      desc='>> Finding Best Thres'):
+
+        score = eval_score_at_thres(sim_df, truth_df, thres)
+
+        if score > best_score:
+            best_score = score
+            best_thres = thres
+
+    return best_score, best_thres
+
+
+def eval_score_at_thres(sim_df: pd.DataFrame, truth_df: pd.DataFrame,
+                        thres: float) -> float:
+    """
+    Given `sim_df` which contains nearest neighbours info and distances
+    and `truth_df` which contains the ground truth neighbours of items in
+    `sim_df`, calculate the f1 score at threshold distance `thres`.
     """
 
-    def __init__(self, df,
-                 id_col='posting_id', label_col=None,
-                 val_idx=None, eval_score=True, neighbors=50,
-                 chunksize=KNN_CHUNKSIZE):
+    unique_ids = sim_df['posting_id'].unique()
+    num_ids = len(unique_ids)
+    num_found = len(truth_df.loc[truth_df['posting_id'].isin(unique_ids)])
 
-        # Check and init df
-        assert id_col in df.columns, f'{id_col} not found in df'
+    assert num_found == num_ids,\
+        f'num unique id in sim_df {num_ids} != num id in truth_df {num_found}'
 
-        if eval_score:
-            assert label_col is not None,\
-                'label_col cannot be None when eval_score is True'
-            assert label_col in df.columns,\
-                f'{label_col} not found in df'
+    for col in ['distances', 'matches', 'posting_id']:
+        assert col in sim_df.columns, f'Column `{col}` not in sim_df'
 
-        self.id_col = id_col
-        self.label_col = label_col
-        self.df = df
-        self.eval_score = eval_score
-        self.chunksize = chunksize
+    for col in ['ground_truth', 'posting_id']:
+        assert col in truth_df.columns, f'Column `{col}` not in truth_df'
 
-        # Check and init val_idx
-        if val_idx is None:
-            self.val_idx = self.df.index.to_list()
-        else:
-            assert type(val_idx) is list, 'val_idx can only be None or a list'
-            assert len(set(val_idx)) < len(self.df),\
-                f'Num of elements in val_idx {len(set(val_idx))}'\
-                f' > df len {len(self.df)}'
-            assert max(val_idx) < len(self.df),\
-                f'{max(val_idx)} is out of range for'\
-                f'df of shape {self.df.shape}'
+    sel = (sim_df['distances'] > thres)
 
-            self.val_idx = val_idx
+    sim_items_sets = (
+        sim_df
+        .loc[sel]
+        .groupby('posting_id')
+        ['matches']
+        .apply(lambda x: set(x))
+        .to_dict()
+    )
 
-        self.neighbors = neighbors
-        self.prepare_df()
-        self.sim_df = None
+    truth_df = truth_df.copy()
+    truth_df['matches'] = truth_df['posting_id'].map(sim_items_sets)
+    truth_df['score'] = (
+        truth_df
+        .apply(lambda x: row_wise_f1(x.matches, x.ground_truth), axis=1)
+    )
 
-    def prepare_df(self):
+    score = truth_df['score'].mean()
 
-        if self.eval_score:
-            label_ground_dict = (
-                self.df
-                .groupby(self.label_col)
-                [self.id_col]
-                .apply(set)
-                .to_dict()
-            )
-            self.df['ground_truth'] = self.df[self.label_col].map(
-                label_ground_dict)
-
-        self.idx_to_posting_map = self.df[self.id_col].to_dict()
-
-    def get_similar_items(self, emb):
-
-        assert len(emb) == len(self.df),\
-            f'Num of emb {len(emb)} != Num of rows in df {len(self.df)}'
-
-        distances, indices = faiss_knn(
-            emb, self.val_idx, self.neighbors, self.chunksize)
-
-        sim_df_base = self.df.loc[self.val_idx, [
-            'posting_id']].reset_index(drop=True).copy()
-        sim_df_base['neighbors'] = self.val_idx
-        sim_df_base['distances'] = 1.0
-
-        self.sim_df = sim_df_base.copy()
-
-        self.sim_df['neighbors'] = pd.Series(indices.tolist())
-        self.sim_df['distances'] = pd.Series(distances.tolist())
-
-        # Exploding multiple columns of equal len & sequence
-        # https://stackoverflow.com/a/59330040/10841164
-        self.sim_df = (
-            self.sim_df
-            .set_index('posting_id')
-            .apply(pd.Series.explode)
-            .reset_index()
-        )
-
-        # This step makes sure each item should at least be its own neighbour
-        self.sim_df = (
-            sim_df_base
-            .append(self.sim_df)
-            .drop_duplicates(subset=['posting_id', 'neighbors'])
-            .reset_index(drop=True)
-        )
-
-        self.sim_df['matches'] = self.sim_df['neighbors'].map(
-            self.idx_to_posting_map)
-
-    def eval_score_at_thres(self, thres):
-
-        sel = (self.sim_df['distances'] > thres)
-
-        sim_items_sets = (
-            self.sim_df
-            .loc[sel]
-            .groupby('posting_id')
-            ['matches']
-            .apply(lambda x: set(x))
-            .to_dict()
-        )
-
-        df_out = self.df.loc[self.val_idx].copy()
-
-        df_out['matches'] = df_out['posting_id'].map(sim_items_sets)
-        df_out['score'] = (
-            df_out
-            .apply(lambda x: row_wise_f1(x.matches, x.ground_truth), axis=1)
-        )
-
-        score = df_out['score'].mean()
-
-        return score, df_out
+    return score
