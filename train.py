@@ -88,7 +88,7 @@ def main():
     if model_type == 'img':
 
         from src.model.img_model import ShopeeIMGModel
-        from src.data.utils import get_img_train_val_loaders
+        from src.data.img_dataset import get_img_train_val_loaders
         from src.config.constants import IMG_CONFIG, IMG_MODEL_PATH
 
         config = IMG_CONFIG
@@ -99,7 +99,7 @@ def main():
 
     elif model_type == 'nlp':
         from src.model.nlp_model import ShopeeNLPModel
-        from src.data.utils import get_nlp_train_val_loaders
+        from src.data.nlp_dataset import get_nlp_train_val_loaders
         from src.config.constants import NLP_CONFIG, NLP_MODEL_PATH
 
         config = NLP_CONFIG

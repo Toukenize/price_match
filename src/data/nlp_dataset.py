@@ -1,7 +1,9 @@
 import os
+import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertTokenizerFast
 from src.data.utils import encode_label
+from src.config.constants import NLPConfig
 
 
 class PriceMatchNLPData(Dataset):
@@ -55,3 +57,23 @@ def get_data_loader(
                             batch_size=batch_size, num_workers=os.cpu_count())
 
     return dataloader
+
+
+def get_nlp_train_val_loaders(
+        nlp_config: NLPConfig,
+        train_df: pd.DataFrame,
+        val_df: pd.DataFrame):
+
+    train_loader = get_data_loader(
+        train_df, text_col='title', label_col='label_group',
+        shuffle=True, batch_size=nlp_config.train_batch_size,
+        pretrained_model_name_or_path=nlp_config.pretrained_tokenizer_folder,
+        model_max_length=nlp_config.model_max_length)
+
+    val_loader = get_data_loader(
+        val_df, text_col='title', label_col=None,
+        shuffle=False, batch_size=nlp_config.val_batch_size,
+        pretrained_model_name_or_path=nlp_config.pretrained_tokenizer_folder,
+        model_max_length=nlp_config.model_max_length)
+
+    return train_loader, val_loader

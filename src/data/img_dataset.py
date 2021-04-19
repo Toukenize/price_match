@@ -1,9 +1,11 @@
 import os
 import cv2
+import pandas as pd
 import albumentations as a
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader, Dataset
 from src.data.utils import encode_label
+from src.config.constants import IMGConfig, TRAIN_IMG_FOLDER
 
 
 class PriceMatchImgData(Dataset):
@@ -88,3 +90,24 @@ def get_data_loader(
                             batch_size=batch_size, num_workers=os.cpu_count())
 
     return dataloader
+
+
+def get_img_train_val_loaders(
+        img_config: IMGConfig,
+        train_df: pd.DataFrame,
+        val_df: pd.DataFrame):
+
+    train_loader = get_data_loader(
+        train_df,
+        img_dim=img_config.img_dim,
+        img_folder=TRAIN_IMG_FOLDER,
+        img_path_col='image', label_col='label_group',
+        shuffle=True, batch_size=img_config.train_batch_size)
+
+    val_loader = get_data_loader(
+        val_df, img_dim=img_config.img_dim,
+        img_folder=TRAIN_IMG_FOLDER,
+        img_path_col='image', label_col=None,
+        shuffle=False, batch_size=img_config.val_batch_size)
+
+    return train_loader, val_loader

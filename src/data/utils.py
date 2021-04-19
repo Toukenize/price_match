@@ -1,9 +1,7 @@
 import pandas as pd
 from typing import Dict
 from sklearn.preprocessing import LabelEncoder
-from src.data import nlp_dataset, img_dataset
-from src.config.constants import DATA_SPLIT_PATH, TRAIN_IMG_FOLDER
-from src.config.base_model_config import IMGConfig, NLPConfig
+from src.config.constants import DATA_SPLIT_PATH
 
 
 def encode_label(
@@ -54,47 +52,6 @@ def generate_idx_to_col_map(
     idx_to_col_map = df[col].to_dict()
 
     return idx_to_col_map
-
-
-def get_nlp_train_val_loaders(
-        nlp_config: NLPConfig,
-        train_df: pd.DataFrame,
-        val_df: pd.DataFrame):
-
-    train_loader = nlp_dataset.get_data_loader(
-        train_df, text_col='title', label_col='label_group',
-        shuffle=True, batch_size=nlp_config.train_batch_size,
-        pretrained_model_name_or_path=nlp_config.pretrained_tokenizer_folder,
-        model_max_length=nlp_config.model_max_length)
-
-    val_loader = nlp_dataset.get_data_loader(
-        val_df, text_col='title', label_col=None,
-        shuffle=False, batch_size=nlp_config.val_batch_size,
-        pretrained_model_name_or_path=nlp_config.pretrained_tokenizer_folder,
-        model_max_length=nlp_config.model_max_length)
-
-    return train_loader, val_loader
-
-
-def get_img_train_val_loaders(
-        img_config: IMGConfig,
-        train_df: pd.DataFrame,
-        val_df: pd.DataFrame):
-
-    train_loader = img_dataset.get_data_loader(
-        train_df,
-        img_dim=img_config.img_dim,
-        img_folder=TRAIN_IMG_FOLDER,
-        img_path_col='image', label_col='label_group',
-        shuffle=True, batch_size=img_config.train_batch_size)
-
-    val_loader = img_dataset.get_data_loader(
-        val_df, img_dim=img_config.img_dim,
-        img_folder=TRAIN_IMG_FOLDER,
-        img_path_col='image', label_col=None,
-        shuffle=False, batch_size=img_config.val_batch_size)
-
-    return train_loader, val_loader
 
 
 def get_holdout_data(data_col='title'):
