@@ -176,7 +176,7 @@ def main():
 
         # Save model and last epoch pred
         torch.save(
-            model,
+            model.state_dict(),
             model_out_path / f'fold_{fold_num + 1}_model.pt')
 
         sim_df.to_csv(

@@ -112,7 +112,7 @@ def get_similar_items(
     assert len(emb) == len(df),\
         f'Num of emb {len(emb)} != Num of rows in df {len(df)}'
     assert type(val_idx) is list, 'val_idx must be a list'
-    assert len(set(val_idx)) < len(df),\
+    assert len(set(val_idx)) <= len(df),\
         f'Num of elements in val_idx {len(set(val_idx))}'\
         f' > df len {len(df)}'
     assert max(val_idx) < len(df),\
