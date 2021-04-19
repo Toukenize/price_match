@@ -6,7 +6,8 @@ import numpy as np
 
 from dotenv import load_dotenv
 from src.train.loops import train_loop, validate_w_knn
-from src.train.utils import get_train_val_data, get_optim_scheduler
+from src.data.utils import get_train_val_data
+from src.train.utils import get_optim_scheduler
 from src.config.base_model_config import BaseModel
 from src.config.constants import KNN_CHUNKSIZE
 
@@ -87,7 +88,7 @@ def main():
     if model_type == 'img':
 
         from src.model.img_model import ShopeeIMGModel
-        from src.train.utils import get_img_train_val_loaders
+        from src.data.utils import get_img_train_val_loaders
         from src.config.constants import IMG_CONFIG, IMG_MODEL_PATH
 
         config = IMG_CONFIG
@@ -98,7 +99,7 @@ def main():
 
     elif model_type == 'nlp':
         from src.model.nlp_model import ShopeeNLPModel
-        from src.train.utils import get_nlp_train_val_loaders
+        from src.data.utils import get_nlp_train_val_loaders
         from src.config.constants import NLP_CONFIG, NLP_MODEL_PATH
 
         config = NLP_CONFIG

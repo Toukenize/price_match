@@ -3,19 +3,20 @@ from src.config.base_model_config import NLPConfig, IMGConfig
 
 # Data paths
 DATA_FOLDER = Path('data/raw')
-TRAIN_IMG_FOLDER = DATA_FOLDER / 'train_images'
+IMG_FOLDER = Path('data/resize')
+TRAIN_IMG_FOLDER = IMG_FOLDER / 'train_images_256'
 DATA_SPLIT_PATH = DATA_FOLDER / 'train_split.csv'
 
 # Pretrained model paths
 MODEL_FOLDER = Path('model')
 PRETRAINED_NLP_MLM = MODEL_FOLDER / 'indobert_lite_p2' / 'mlm_checkpoint'
 PRETRAINED_TOKENIZER = MODEL_FOLDER / 'indobert_lite_p2' / 'tokenizer'
-PRETRAINED_EFF_B3 = (MODEL_FOLDER / 'efficient_net_b3' /
-                     'pretrained' / 'efficientnet_b3.pth')
+PRETRAINED_IMG = (MODEL_FOLDER / 'efficient_net_b0' /
+                  'pretrained' / 'efficientnet_b0.pth')
 
 # Output paths
 NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_test_refactor'
-IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b3' / 'emb_model_test_refactor'
+IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_v1'
 
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
     if not path.exists():
@@ -46,11 +47,11 @@ NLP_CONFIG = NLPConfig(
 
 # IMG Configs
 IMG_CONFIG = IMGConfig(
-    epochs=10,
+    epochs=100,
     dropout_prob=0.2,
-    learning_rate=8e-5,
-    train_batch_size=16,
-    val_batch_size=32,
+    learning_rate=3e-4,
+    train_batch_size=64,
+    val_batch_size=128,
     scheduler='reduce_on_plateau',
     scheduler_params={
         "factor": 0.5,
@@ -59,6 +60,6 @@ IMG_CONFIG = IMGConfig(
     optimizer='adamw',
     loss_fn='arcface',
     loss_params={"m": 0.5, "s": 30.0},
-    pretrained_model_path=PRETRAINED_EFF_B3,
+    pretrained_model_path=PRETRAINED_IMG,
     img_dim=256
 )
