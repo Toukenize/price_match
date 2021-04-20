@@ -30,7 +30,7 @@ class ModelConfig(BaseModel):
 
     @validator('loss_fn')
     def check_loss_fn(cls, v):
-        allowed = ['arcface', 'cosface']
+        allowed = ['arcmargin']
         assert v in allowed, f'margin loss fn must be one of {allowed}'
         return v
 

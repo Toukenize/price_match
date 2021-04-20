@@ -7,7 +7,7 @@ import numpy as np
 from dotenv import load_dotenv
 from src.train.loops import train_loop, validate_w_knn
 from src.data.utils import get_train_val_data
-from src.train.utils import get_optim_scheduler
+from src.train.utils import get_optim_scheduler, get_margin_func_and_params
 from src.config.base_model_config import BaseModel
 from src.config.constants import KNN_CHUNKSIZE
 
@@ -36,12 +36,12 @@ def parse_args():
             """
     )
     parser.add_argument(
-        '--val_freq', type=int, default=-1,
+        '--val_freq', type=int, default=10,
         help="""
             Validate and log F1-score at every `val_freq` number of epochs, in
             addition to the final epoch. If `val_freq` is negative, only
             validate at final epoch.
-            Default = -1
+            Default = 10
             """
     )
     parser.add_argument(
@@ -129,19 +129,25 @@ def main():
 
         torch.manual_seed(2021)  # For reproducibility
 
+        margin_func, margin_params = get_margin_func_and_params(config)
+
         if model_type == 'img':
             model = model_class(
-                config.pretrained_model_path, num_classes,
-                config.dropout_prob)
+                config.pretrained_model_path,
+                num_classes=num_classes,
+                margin_func=margin_func,
+                **margin_params)
 
         elif model_type == 'nlp':
             model = model_class(
-                config.pretrained_model_folder, num_classes,
-                config.dropout_prob)
+                config.pretrained_model_folder,
+                num_classes=num_classes,
+                margin_func=margin_func,
+                **margin_params)
 
         model = model.to(device)
 
-        optimizer, margin_loss, scheduler = get_optim_scheduler(
+        optimizer, scheduler = get_optim_scheduler(
             config, model)
 
         for epoch_num in range(epochs):
@@ -151,7 +157,7 @@ def main():
 
             # Compute & Log Train Losses
             train_losses = train_loop(
-                model, train_loader, optimizer, margin_loss,
+                model, train_loader, optimizer,
                 device=device, scheduler=scheduler, epoch_info=epoch_info)
 
             run[f'Fold_{fold_num + 1}_Train_Loss'].log(np.mean(train_losses))

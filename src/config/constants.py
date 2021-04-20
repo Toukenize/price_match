@@ -27,7 +27,7 @@ KNN_CHUNKSIZE = 1024
 
 # NLP Configs
 NLP_CONFIG = NLPConfig(
-    epochs=10,
+    epochs=100,
     dropout_prob=0.2,
     learning_rate=3e-5,
     train_batch_size=32,
@@ -38,8 +38,8 @@ NLP_CONFIG = NLPConfig(
         "patience": 2,
         "min_lr": 5e-6},
     optimizer='adamw',
-    loss_fn='arcface',
-    loss_params={"m": 0.5, "s": 30.0},
+    loss_fn='arcmargin',
+    loss_params={"m": 0.5, "s": 30.0, "easy_margin": False},
     model_max_length=64,
     pretrained_model_folder=PRETRAINED_NLP_MLM,
     pretrained_tokenizer_folder=PRETRAINED_TOKENIZER
@@ -58,8 +58,8 @@ IMG_CONFIG = IMGConfig(
         "patience": 2,
         "min_lr": 5e-6},
     optimizer='adamw',
-    loss_fn='arcface',
-    loss_params={"m": 0.5, "s": 70.0},
+    loss_fn='arcmargin',
+    loss_params={"m": 0.5, "s": 30.0, "easy_margin": False},
     pretrained_model_path=PRETRAINED_IMG,
     img_dim=384
 )

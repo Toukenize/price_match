@@ -4,30 +4,26 @@ import torch.nn as nn
 
 class ShopeeIMGModel(nn.Module):
 
-    def __init__(self, model_path, num_classes, dropout_prob=0.2):
+    def __init__(self, model_path, num_classes, margin_func, **margin_params):
         super(ShopeeIMGModel, self).__init__()
 
         self.model = torch.load(model_path)
         self.model.classifier = nn.Identity()
-        self.norm = nn.LayerNorm(self.model.num_features)
-        self.dropout = nn.Dropout(dropout_prob)
-        self.lin = nn.Linear(self.model.num_features, num_classes)
-        self.tanh = nn.Tanh()
         self.feature_dim = self.model.num_features
+        self.arc_margin = margin_func(
+            in_features=self.feature_dim,
+            out_features=num_classes,
+            **margin_params)
 
-    def forward(self, image):
+    def forward(self, image, label):
 
-        x = self.model(image)
-        x = self.norm(x)
-        x = self.dropout(x)
-        x = self.lin(x)
-        x = self.tanh(x)
+        x = self.extract_features(image)
+        x = self.arc_margin(x, label)
 
         return x
 
     def extract_features(self, image):
 
         x = self.model(image)
-        x = self.norm(x)
 
         return x

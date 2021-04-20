@@ -1,7 +1,18 @@
 import torch
 import torch.nn as nn
-from src.model.loss_func import ArcFace, CosFace
 from src.config.base_model_config import ModelConfig
+from src.model.loss_func import ArcMarginProduct
+
+
+def get_margin_func_and_params(config: ModelConfig):
+
+    margin_func_name = config.loss_fn
+    margin_params = config.loss_params
+
+    if margin_func_name == 'arcmargin':
+        margin_func = ArcMarginProduct
+
+    return margin_func, margin_params
 
 
 def get_optimizer(config: ModelConfig, **kwargs):
@@ -33,21 +44,6 @@ def get_scheduler(config: ModelConfig, **kwargs):
     return scheduler
 
 
-def get_loss_fn(config: ModelConfig):
-
-    loss_fn_name = config.loss_fn
-    loss_params = config.loss_params
-
-    if loss_fn_name == 'arcface':
-        loss_fn_class = ArcFace
-    elif loss_fn_name == 'cosface':
-        loss_fn_class = CosFace
-
-    loss_fn = loss_fn_class(**loss_params)
-
-    return loss_fn
-
-
 def get_optim_scheduler(config: ModelConfig,
                         model: nn.Module):
     """
@@ -60,8 +56,6 @@ def get_optim_scheduler(config: ModelConfig,
     optimizer = get_optimizer(
         config, params=model.parameters(), lr=config.learning_rate)
 
-    margin_loss = get_loss_fn(config)
-
     scheduler = get_scheduler(config, optimizer=optimizer)
 
-    return optimizer, margin_loss, scheduler
+    return optimizer, scheduler

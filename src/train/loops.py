@@ -8,7 +8,7 @@ from src.data.utils import generate_idx_to_col_map, group_labels
 from src.metrics.utils import get_similar_items, find_best_score
 
 
-def train_loop(model, dataloader, optimizer, margin_loss, device,
+def train_loop(model, dataloader, optimizer, device,
                scheduler=None, epoch_info=''):
 
     criterion = nn.CrossEntropyLoss()
@@ -22,8 +22,7 @@ def train_loop(model, dataloader, optimizer, margin_loss, device,
         target = data.pop('label')
 
         # Compute output & loss
-        output = model.forward(**data)
-        logits = margin_loss.forward(output, target)
+        logits = model.forward(label=target, **data)
         loss = criterion(logits, target)
 
         pbar.set_description(
