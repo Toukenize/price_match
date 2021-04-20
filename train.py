@@ -150,6 +150,8 @@ def main():
         optimizer, scheduler = get_optim_scheduler(
             config, model)
 
+        best_loss = 10_000
+
         for epoch_num in range(epochs):
 
             epoch_info = f'Fold {fold_num+1}, '\
@@ -160,7 +162,9 @@ def main():
                 model, train_loader, optimizer,
                 device=device, scheduler=scheduler, epoch_info=epoch_info)
 
-            run[f'Fold_{fold_num + 1}_Train_Loss'].log(np.mean(train_losses))
+            avg_train_loss = np.mean(train_losses)
+
+            run[f'Fold_{fold_num + 1}_Train_Loss'].log(avg_train_loss)
 
             # Compute & Log F1 Score at val_freq / last epoch
             val_cond = (
@@ -180,14 +184,18 @@ def main():
 
                 run[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_score)
 
-        # Save model and last epoch pred
-        torch.save(
-            model.state_dict(),
-            model_out_path / f'fold_{fold_num + 1}_model.pt')
+            # Save model if loss improved
+            if avg_train_loss < best_loss:
 
-        sim_df.to_csv(
-            model_out_path / f'fold_{fold_num + 1}_pairwise_pred.csv',
-            index=False)
+                torch.save(
+                    model.state_dict(),
+                    model_out_path / f'fold_{fold_num + 1}_model.pt')
+
+                best_loss = avg_train_loss
+
+        # sim_df.to_csv(
+        #     model_out_path / f'fold_{fold_num + 1}_pairwise_pred.csv',
+        #     index=False)
 
     return
 
