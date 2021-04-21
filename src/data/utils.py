@@ -54,47 +54,34 @@ def generate_idx_to_col_map(
     return idx_to_col_map
 
 
-def get_holdout_data(data_col='title'):
-
-    cols_req = [data_col, 'label_group']
-    df = pd.read_csv(DATA_SPLIT_PATH)
-    df['val_set'] = False
-    df.loc[df['split'] == 'holdout', 'val_set'] = True
-
-    return df[cols_req + ['val_set', 'posting_id']]
-
-
-def get_train_val_data(fold_num, total_splits=8, data_col='title'):
+def get_train_val_data(fold_num, data_col='title'):
     """
-    Note that the splits is GroupedKFold, thus the
-    validation set is to be used for similarity search
-    rather than as the validation set for model training.
-
-    Also, since the validation is done by searching against
-    the full set of data, the returned "val_data" is actually
-    the full dataframe, with additional column indicating
-    whether the data row is from validation or not.
+    Data has been pre-split into 10 folds, thus
+    `fold_num` ranges from 0 to 9, and the rows
+    with `split` == `fold_num` will be used as the
+    validation set.
     """
+    assert fold_num < 10,\
+        f'fold_num + 1 : {fold_num + 1} is > 10'
 
-    assert fold_num < total_splits,\
-        f'fold_num + 1 : {fold_num + 1} is > total_split : {total_splits}'
-    assert total_splits in [4, 8], 'total_splits must be 4 or 8'
+    out_cols = ['posting_id', data_col, 'label_group']
 
-    holdout_split = ['holdout']
-    cols_req = [data_col, 'label_group']
     df = pd.read_csv(DATA_SPLIT_PATH)
 
-    if total_splits == 4:
-        val_splits = [f'fold_{fold_num*2}', f'fold_{fold_num*2+1}']
+    val_fold = f'fold_{fold_num}'
 
-    else:
-        val_splits = [f'fold_{fold_num}']
+    train_df = (
+        df
+        .query(f'split != "{val_fold}"')
+        .reset_index(drop=True)
+        .copy()
+    )
 
-    not_train_splits = val_splits + holdout_split
+    val_df = (
+        df
+        .query(f'split == "{val_fold}"')
+        .reset_index(drop=True)
+        .copy()
+    )
 
-    train_df = df.loc[~df['split'].isin(not_train_splits)]
-
-    df['val_set'] = False
-    df.loc[df['split'].isin(val_splits), 'val_set'] = True
-
-    return train_df[cols_req], df[cols_req + ['val_set', 'posting_id']]
+    return train_df[out_cols], val_df[out_cols]

@@ -5,7 +5,7 @@ from src.config.base_model_config import NLPConfig, IMGConfig
 DATA_FOLDER = Path('data/raw')
 IMG_FOLDER = Path('data/resize')
 TRAIN_IMG_FOLDER = IMG_FOLDER / 'train_images_384'
-DATA_SPLIT_PATH = DATA_FOLDER / 'train_split.csv'
+DATA_SPLIT_PATH = DATA_FOLDER / 'train_split_v2.csv'
 
 # Pretrained model paths
 MODEL_FOLDER = Path('model')

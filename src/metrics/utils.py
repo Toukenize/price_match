@@ -153,7 +153,7 @@ def get_similar_items(
     return sim_df
 
 
-def find_best_score(
+def find_best_f1_score(
         sim_df: pd.DataFrame, truth_df: pd.DataFrame,
         thres_min: float = 0.2, thres_max: float = 0.9,
         thres_step: float = 0.02) -> Tuple[float, float]:
@@ -214,3 +214,37 @@ def eval_score_at_thres(sim_df: pd.DataFrame, truth_df: pd.DataFrame,
     score = truth_df['score'].mean()
 
     return score
+
+
+def eval_top_k_accuracy(
+        sim_df: pd.DataFrame, truth_df: pd.DataFrame,
+        top_k: int = 1) -> float:
+
+    sel = sim_df['posting_id'] != sim_df['matches']
+
+    closest_df = (
+        sim_df
+        .loc[sel]
+        .sort_values('distances', ascending=False)
+        .groupby('posting_id', as_index=False)
+        .nth(list(range(top_k)))
+    )
+
+    posting_label_map = (
+        truth_df
+        .set_index('posting_id')
+        ['ground_truth']
+        .to_dict()
+    )
+
+    correct = (
+        closest_df
+        .apply(
+            lambda x: x.matches in posting_label_map[x.posting_id],
+            axis=1)
+        .sum()
+    )
+
+    accuracy = correct / len(truth_df)
+
+    return accuracy

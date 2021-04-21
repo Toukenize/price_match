@@ -5,7 +5,8 @@ import numpy as np
 from tqdm import tqdm
 
 from src.data.utils import generate_idx_to_col_map, group_labels
-from src.metrics.utils import get_similar_items, find_best_score
+from src.metrics.utils import (
+    get_similar_items, find_best_f1_score, eval_top_k_accuracy)
 
 
 def train_loop(model, dataloader, optimizer, device,
@@ -75,7 +76,8 @@ def validate_w_knn(model, dataloader, device,
     val_df = dataloader.dataset.df.copy()
     val_df = group_labels(val_df)
     idx_to_id_mapping = generate_idx_to_col_map(val_df)
-    val_idx = val_df.query('val_set == True').index.tolist()
+
+    val_idx = val_df.index.tolist()
 
     sim_df = get_similar_items(
         val_df, emb_arr,
@@ -85,10 +87,9 @@ def validate_w_knn(model, dataloader, device,
     del emb_arr
     gc.collect()
 
-    if optimize:
-        best_score, best_thres = find_best_score(
-            sim_df=sim_df, truth_df=val_df.query('val_set == True'))
-        return best_score, best_thres, sim_df
+    best_f1_score, best_f1_thres = find_best_f1_score(
+        sim_df=sim_df, truth_df=val_df)
 
-    else:
-        return sim_df
+    acc_score = eval_top_k_accuracy(sim_df=sim_df, truth_df=val_df, top_k=1)
+
+    return acc_score, best_f1_score, best_f1_thres

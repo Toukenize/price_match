@@ -29,22 +29,6 @@ def parse_args():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--splits', choices=[4, 8], type=int, default=4,
-        help="""
-            Choose total number of cross validation splits (4 or 8).
-            Default = 4
-            """
-    )
-    parser.add_argument(
-        '--val_freq', type=int, default=10,
-        help="""
-            Validate and log F1-score at every `val_freq` number of epochs, in
-            addition to the final epoch. If `val_freq` is negative, only
-            validate at final epoch.
-            Default = 10
-            """
-    )
-    parser.add_argument(
         '--sample', type=float, default=1.0,
         help="""
             Specify the proportion of data to use in each fold (between 0 & 1).
@@ -52,11 +36,11 @@ def parse_args():
             """
     )
     parser.add_argument(
-        '--trainfolds', nargs='+', type=int, default=[0, 1, 2, 3],
+        '--trainfolds', nargs='+', type=int, default=list(range(10)),
         help="""
             Specify the fold numbers to train (zero-index). Fold number cannot
             be larger than `split`
-            Default = [0, 1, 2, 3]
+            Default = [0, 1, 2, 3, ... 9]
             """
     )
     parser.add_argument(
@@ -68,10 +52,6 @@ def parse_args():
 
     args = parser.parse_args()
 
-    for f_num in args.trainfolds:
-        assert f_num < args.splits,\
-            f'trainfold {f_num + 1} > {args.splits} is invalid'
-
     return args
 
 
@@ -79,8 +59,6 @@ def main():
 
     # Get CLI arguments
     args = parse_args()
-    splits = args.splits
-    val_freq = args.val_freq
     sample = args.sample
     folds_to_train = args.trainfolds
     model_type = args.model_type
@@ -117,7 +95,7 @@ def main():
 
         # Init df based on split and fold number
         train_df, val_df = get_train_val_data(
-            fold_num, splits, data_col=data_col)
+            fold_num, data_col=data_col)
         if sample != 1.0:
             train_df = train_df.sample(frac=sample, random_state=2021)
             val_df = val_df.sample(frac=sample, random_state=2021)
@@ -150,7 +128,7 @@ def main():
         optimizer, scheduler = get_optim_scheduler(
             config, model)
 
-        best_loss = 10_000
+        best_f1_score = 0.00
 
         for epoch_num in range(epochs):
 
@@ -166,36 +144,23 @@ def main():
 
             run[f'Fold_{fold_num + 1}_Train_Loss'].log(avg_train_loss)
 
-            # Compute & Log F1 Score at val_freq / last epoch
-            val_cond = (
-                ((epoch_num + 1) % val_freq == 0)
-                or
-                (epoch_num + 1 == epochs)
-            )
+            val_acc, val_f1_score, f1_score_thres = validate_w_knn(
+                model=model, dataloader=val_loader, device=device,
+                feature_dim=model.feature_dim, optimize=True,
+                n=50, chunksize=KNN_CHUNKSIZE)
 
-            if val_cond:
+            run[f'Fold_{fold_num + 1}_KNN_Thres'].log(f1_score_thres)
+            run[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_f1_score)
+            run[f'Fold_{fold_num + 1}_Val_Accuracy'].log(val_acc)
 
-                val_score, best_thres, sim_df = validate_w_knn(
-                    model=model, dataloader=val_loader, device=device,
-                    feature_dim=model.feature_dim, optimize=True,
-                    n=50, chunksize=KNN_CHUNKSIZE)
-
-                run['params/knn_thres'] = best_thres
-
-                run[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_score)
-
-            # Save model if loss improved
-            if avg_train_loss < best_loss:
+            # Save model if val_f1_score improved
+            if best_f1_score > val_f1_score:
 
                 torch.save(
                     model.state_dict(),
                     model_out_path / f'fold_{fold_num + 1}_model.pt')
 
-                best_loss = avg_train_loss
-
-        # sim_df.to_csv(
-        #     model_out_path / f'fold_{fold_num + 1}_pairwise_pred.csv',
-        #     index=False)
+                best_f1_score = val_f1_score
 
     return
 
