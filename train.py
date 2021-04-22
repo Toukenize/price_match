@@ -182,7 +182,7 @@ def main():
                 best_f1_score = val_f1_score
 
             # Save model if best train loss improved
-            if avg_train_loss > best_train_loss:
+            if avg_train_loss < best_train_loss:
                 model_name = f'fold_{fold_num + 1}_best_train_loss.pt'
                 torch.save(
                     model.state_dict(),
