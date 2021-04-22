@@ -10,8 +10,9 @@ class ShopeeIMGModel(nn.Module):
 
         self.model = torch.load(model_path)
         self.model.classifier = nn.Identity()
-        self.dropout = nn.Dropout(dropout)
         self.feature_dim = self.model.num_features
+        self.bn = nn.BatchNorm1d(self.feature_dim)
+        self.dropout = nn.Dropout(dropout)
         self.arc_margin = margin_func(
             in_features=self.feature_dim,
             out_features=num_classes,
@@ -28,5 +29,6 @@ class ShopeeIMGModel(nn.Module):
     def extract_features(self, image):
 
         x = self.model(image)
+        x = self.bn(x)
 
         return x
