@@ -15,7 +15,7 @@ PRETRAINED_IMG = (MODEL_FOLDER / 'efficient_net_b0' /
                   'pretrained' / 'efficientnet_b0.pth')
 
 # Output paths
-NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_test_refactor'
+NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_v2'
 IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_v1'
 
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
@@ -27,11 +27,11 @@ KNN_CHUNKSIZE = 1024
 
 # NLP Configs
 NLP_CONFIG = NLPConfig(
-    epochs=100,
-    dropout_prob=0.2,
+    epochs=50,
+    # dropout_prob=0.2,
     learning_rate=3e-5,
-    train_batch_size=32,
-    val_batch_size=64,
+    train_batch_size=64,
+    val_batch_size=128,
     scheduler='reduce_on_plateau',
     scheduler_params={
         "factor": 0.5,
@@ -40,7 +40,7 @@ NLP_CONFIG = NLPConfig(
     optimizer='adamw',
     loss_fn='arcmargin',
     loss_params={"m": 0.5, "s": 30.0, "easy_margin": False},
-    model_max_length=64,
+    model_max_length=48,
     pretrained_model_folder=PRETRAINED_NLP_MLM,
     pretrained_tokenizer_folder=PRETRAINED_TOKENIZER
 )
@@ -48,7 +48,7 @@ NLP_CONFIG = NLPConfig(
 # IMG Configs
 IMG_CONFIG = IMGConfig(
     epochs=10,
-    dropout_prob=0.2,
+    # dropout_prob=0.2,
     learning_rate=8e-5,
     train_batch_size=16,
     val_batch_size=64,
