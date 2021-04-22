@@ -4,7 +4,6 @@ import argparse
 import neptune.new as neptune
 import numpy as np
 
-from dotenv import load_dotenv
 from src.train.loops import train_loop, validate_w_knn
 from src.data.utils import get_train_val_data
 from src.train.utils import get_optim_scheduler, get_margin_func_and_params
@@ -12,9 +11,13 @@ from src.config.base_model_config import BaseModel
 from src.config.constants import KNN_CHUNKSIZE
 
 
-def get_neptune_run(config: BaseModel, model_tag: str, desc: str = ''):
+def get_neptune_run(env: str,
+                    config: BaseModel, model_tag: str, desc: str = ''):
 
-    load_dotenv()
+    if env == 'local':
+        from dotenv import load_dotenv
+        load_dotenv()
+
     api_token = os.environ.get('NEPTUNE_TOKEN')
     proj_name = os.environ.get('PROJECT_NAME')
     run = neptune.init(project=proj_name, api_token=api_token,
@@ -28,6 +31,13 @@ def get_neptune_run(config: BaseModel, model_tag: str, desc: str = ''):
 def parse_args():
 
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--env', type=str, default='local', choices=['local', 'kaggle'],
+        help="""
+            Specify training environment. Either local or kaggle.
+            Default = local
+            """
+    )
     parser.add_argument(
         '--sample', type=float, default=1.0,
         help="""
@@ -44,9 +54,10 @@ def parse_args():
             """
     )
     parser.add_argument(
-        '--model_type', type=str, choices=['nlp', 'img'],
+        '--model_type', type=str, default='nlp', choices=['nlp', 'img'],
         help="""
             Specify type of training routine (nlp or img).
+            Default = nlp
             """
     )
 
@@ -57,11 +68,19 @@ def parse_args():
 
 def main():
 
-    # Get CLI arguments
+    # Get var from CLI
     args = parse_args()
-    sample = args.sample
-    folds_to_train = args.trainfolds
-    model_type = args.model_type
+    env = args.env
+
+    if env == 'local':
+        sample = args.sample
+        folds_to_train = args.trainfolds
+        model_type = args.model_type
+    else:
+        # Get var from enviroment
+        sample = float(os.environ.get('SAMPLE'))
+        folds_to_train = list(int(f) for f in os.environ.get('FOLDS_TO_TRAIN'))
+        model_type = os.environ.get('MODEL_TYPE')
 
     if model_type == 'img':
 
@@ -87,7 +106,7 @@ def main():
         data_col = 'title'
 
     # Init other stuff
-    run = get_neptune_run(config, model_type.upper())
+    run = get_neptune_run(env, config, model_type.upper())
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     epochs = config.epochs
 
