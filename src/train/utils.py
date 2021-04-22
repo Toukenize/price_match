@@ -41,7 +41,7 @@ def get_scheduler(config: ModelConfig, steps: int, **kwargs):
         schd_params = {
             'num_warmup_steps': schd_params['num_warmup_epochs'] * steps,
             'num_training_steps': schd_params['num_training_epochs'] * steps,
-            'num_cyles': schd_params['num_cycles']
+            'num_cycles': schd_params['num_cycles']
         }
 
     scheduler = schd_class(**schd_params, **kwargs)
