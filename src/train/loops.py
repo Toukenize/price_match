@@ -27,7 +27,7 @@ def train_loop(model, dataloader, optimizer, device,
         loss = criterion(logits, target)
 
         if scheduler is not None:
-            lr = scheduler.get_lr()
+            lr = scheduler.get_lr()[0]
         else:
             lr = optimizer.param_groups[0]['lr']
 
