@@ -6,7 +6,7 @@ from typing import Dict, Union, Optional
 class ModelConfig(BaseModel):
 
     epochs: int
-    # dropout_prob: float
+    dropout_prob: float
     learning_rate: float
     train_batch_size: int
     val_batch_size: int
@@ -34,12 +34,12 @@ class ModelConfig(BaseModel):
         assert v in allowed, f'margin loss fn must be one of {allowed}'
         return v
 
-    # @validator('dropout_prob')
-    # def check_dropout(cls, v):
-    #     if v > 0.5:
-    #         warnings.warn(
-    #             f"dropout_prob is {v} > 0.5, I hope you know what you're doing.")
-    #     return v
+    @validator('dropout_prob')
+    def check_dropout(cls, v):
+        if v > 0.5:
+            warnings.warn(
+                f"dropout_prob is {v} > 0.5, I hope you know what you're doing.")
+        return v
 
 
 class NLPConfig(ModelConfig):
