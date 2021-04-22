@@ -47,16 +47,16 @@ NLP_CONFIG = NLPConfig(
 
 # IMG Configs
 IMG_CONFIG = IMGConfig(
-    epochs=10,
+    epochs=50,
     dropout_prob=0.1,
     learning_rate=8e-5,
     train_batch_size=16,
     val_batch_size=64,
-    scheduler='reduce_on_plateau',
+    scheduler='cosine_decay_w_warmup',
     scheduler_params={
-        "factor": 0.5,
-        "patience": 2,
-        "min_lr": 5e-6},
+        "num_warmup_epochs": 5,
+        "num_training_epochs": 45,
+        "num_cycles": 0.4},
     optimizer='adamw',
     loss_fn='arcmargin',
     loss_params={"m": 0.5, "s": 30.0, "easy_margin": False},

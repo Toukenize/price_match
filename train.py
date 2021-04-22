@@ -125,6 +125,7 @@ def main():
             model = model_class(
                 config.pretrained_model_path,
                 num_classes=num_classes,
+                dropout=config.dropout_prob,
                 margin_func=margin_func,
                 **margin_params)
 
@@ -132,6 +133,7 @@ def main():
             model = model_class(
                 config.pretrained_model_folder,
                 num_classes=num_classes,
+                dropout=config.dropout_prob,
                 margin_func=margin_func,
                 **margin_params)
 
