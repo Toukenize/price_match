@@ -71,16 +71,9 @@ def main():
     # Get var from CLI
     args = parse_args()
     env = args.env
-
-    if env == 'local':
-        sample = args.sample
-        folds_to_train = args.trainfolds
-        model_type = args.model_type
-    else:
-        # Get var from enviroment
-        sample = float(os.environ.get('SAMPLE'))
-        folds_to_train = list(int(f) for f in os.environ.get('FOLDS_TO_TRAIN'))
-        model_type = os.environ.get('MODEL_TYPE')
+    sample = args.sample
+    folds_to_train = args.trainfolds
+    model_type = args.model_type
 
     if model_type == 'img':
 
