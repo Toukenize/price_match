@@ -15,7 +15,7 @@ PRETRAINED_IMG = (MODEL_FOLDER / 'efficient_net_b0' /
                   'pretrained' / 'efficientnet_b0.pth')
 
 # Output paths
-NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_v2'
+NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_v3'
 IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_v1'
 
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
@@ -27,9 +27,9 @@ KNN_CHUNKSIZE = 1024
 
 # NLP Configs
 NLP_CONFIG = NLPConfig(
-    epochs=50,
+    epochs=100,
     # dropout_prob=0.2,
-    learning_rate=3e-5,
+    learning_rate=5e-5,
     train_batch_size=64,
     val_batch_size=128,
     scheduler='reduce_on_plateau',

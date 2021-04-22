@@ -129,7 +129,7 @@ def main():
             config, model)
 
         best_f1_score = 0.00
-        best_acc_score = 0.00
+        best_train_loss = 10_000
 
         for epoch_num in range(epochs):
 
@@ -162,14 +162,13 @@ def main():
                     model_out_path / model_name)
                 best_f1_score = val_f1_score
 
-            # Save model if val_f1_score improved
-            if val_acc > best_acc_score:
-
-                model_name = f'fold_{fold_num + 1}_best_acc.pt'
+            # Save model if best train loss improved
+            if avg_train_loss > best_train_loss:
+                model_name = f'fold_{fold_num + 1}_best_train_loss.pt'
                 torch.save(
                     model.state_dict(),
                     model_out_path / model_name)
-                best_acc_score = val_acc
+                best_train_loss = avg_train_loss
 
     return
 
