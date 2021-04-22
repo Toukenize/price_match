@@ -18,7 +18,7 @@ class ModelConfig(BaseModel):
 
     @validator('scheduler')
     def check_scheduler(cls, v):
-        allowed = [None, 'reduce_on_plateau', 'cyclic', 'cosine_anneal']
+        allowed = [None, 'cosine_decay_w_warmup']
         assert v in allowed, f'scheduler must be one of {allowed}'
         return v
 

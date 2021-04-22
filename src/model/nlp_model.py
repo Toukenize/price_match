@@ -4,11 +4,12 @@ from transformers import AutoModel
 
 class ShopeeNLPModel(nn.Module):
 
-    def __init__(self, model_path, num_classes,
+    def __init__(self, model_path, num_classes, dropout,
                  margin_func, **margin_params):
 
         super(ShopeeNLPModel, self).__init__()
         self.model = AutoModel.from_pretrained(model_path)
+        self.dropout = nn.Dropout(dropout)
         self.feature_dim = self.model.config.hidden_size
         self.arc_margin = margin_func(
             in_features=self.feature_dim,
@@ -22,6 +23,7 @@ class ShopeeNLPModel(nn.Module):
             token_type_ids=token_type_ids,
             attention_mask=attention_mask
         )
+        x = self.dropout(x)
         x = self.arc_margin(x, label)
 
         return x

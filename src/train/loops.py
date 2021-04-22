@@ -26,8 +26,13 @@ def train_loop(model, dataloader, optimizer, device,
         logits = model.forward(label=target, **data)
         loss = criterion(logits, target)
 
+        if scheduler is not None:
+            lr = scheduler.get_lr()
+        else:
+            lr = optimizer.param_groups[0]['lr']
+
         pbar.set_description(
-            f'>> {epoch_info} (Train) - Margin Loss : {loss.item():.4f}')
+            f'>> {epoch_info} - Train Loss : {loss.item():.4f} LR : {lr:.1e}')
 
         # Backward pass
         optimizer.zero_grad()
@@ -35,7 +40,7 @@ def train_loop(model, dataloader, optimizer, device,
         optimizer.step()
 
         if scheduler:
-            scheduler.step(loss)
+            scheduler.step()
 
         losses.append(loss.item())
 

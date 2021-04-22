@@ -137,8 +137,10 @@ def main():
 
         model = model.to(device)
 
+        train_steps = len(train_loader)
+
         optimizer, scheduler = get_optim_scheduler(
-            config, model)
+            config, model, steps=train_steps)
 
         best_f1_score = 0.00
         best_train_loss = 10_000
