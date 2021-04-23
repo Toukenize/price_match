@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from src.config.base_model_config import NLPConfig, IMGConfig
 
@@ -21,6 +22,9 @@ IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_v1'
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
     if not path.exists():
         path.mkdir(parents=True)
+
+# Dataloader Config
+NUM_WORKER = os.cpu_count()
 
 # KNN Chunksize
 KNN_CHUNKSIZE = 1024

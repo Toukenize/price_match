@@ -1,9 +1,8 @@
-import os
 import pandas as pd
 from torch.utils.data import DataLoader, Dataset
 from transformers import BertTokenizerFast
 from src.data.utils import encode_label
-from src.config.constants import NLPConfig
+from src.config.constants import NLPConfig, NUM_WORKER
 
 
 class PriceMatchNLPData(Dataset):
@@ -54,7 +53,7 @@ def get_data_loader(
 
     dataset = PriceMatchNLPData(df, text_col, label_col, **tokenizer_args)
     dataloader = DataLoader(dataset, shuffle=shuffle,
-                            batch_size=batch_size, num_workers=os.cpu_count())
+                            batch_size=batch_size, num_workers=NUM_WORKER)
 
     return dataloader
 
