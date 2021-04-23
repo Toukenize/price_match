@@ -10,7 +10,9 @@ class ShopeeIMGModel(nn.Module):
 
         self.model = torch.load(model_path)
         self.model.classifier = nn.Identity()
+        self.model.global_pool = nn.Identity()
         self.feature_dim = self.model.num_features
+        self.pooling = nn.AdaptiveAvgPool2d(1)
         self.bn = nn.BatchNorm1d(self.feature_dim)
         self.dropout = nn.Dropout(dropout)
         self.arc_margin = margin_func(
@@ -28,7 +30,9 @@ class ShopeeIMGModel(nn.Module):
 
     def extract_features(self, image):
 
+        batch_size = image.shape[0]
         x = self.model(image)
+        x = self.pooling(x).view(batch_size, -1)
         x = self.bn(x)
 
         return x
