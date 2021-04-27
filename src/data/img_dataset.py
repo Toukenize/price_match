@@ -86,7 +86,8 @@ def get_data_loader(
         df, img_folder, transforms, img_path_col, label_col)
 
     dataloader = DataLoader(dataset, shuffle=shuffle,
-                            batch_size=batch_size, num_workers=NUM_WORKER)
+                            batch_size=batch_size, num_workers=NUM_WORKER,
+                            pin_memory=True)
 
     return dataloader
 
