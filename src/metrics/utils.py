@@ -18,12 +18,16 @@ def row_wise_f1(s1: Set, s2: Set) -> float:
     return score
 
 
-def faiss_knn(
+def faiss_knn_cosine(
         emb_arr: np.ndarray,
         query_idx: List,
         neighbors: int = 50,
         chunksize: int = 512) -> Tuple[np.ndarray, np.ndarray]:
-
+    """
+    Note:
+        The distance returned is actually similarity ranges from 0 to 1.
+        1 means both items are exactly the same.
+    """
     # Infer feature dimension from emb_arr
     dim = emb_arr.shape[1]
 
@@ -58,43 +62,60 @@ def faiss_knn(
     return dists, indices
 
 
-def faiss_cos_dist(
+def faiss_knn_hamming(
         emb_arr: np.ndarray,
         query_idx: List,
-        thresh: float = 0.99
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        neighbors: int = 50,
+        chunksize: int = 512) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Given an embedding array and a list of query_idx,
-    return the incides and distances of the items with
-    similarity threshold > thres.
+    Binary arr should be packed to their bytes equivalent, before
+    the packed array is passed as `emb_arr`
 
-    Refer to https://github.com/facebookresearch/faiss/wiki/Special-operations-on-indexes#range-search
-    for more information on the outputs structure.
-    """  # noqa
+    i.e.
+        emb_arr = array([0, 0, 0, 0, 0, 0, 1, 0])
+        packed_arr = np.packbits(emb_arr) # array([2], dtype=uint8)
 
+    Note:
+        The distance returned is actually similarity ranges from 0 to 1.
+        1 means both items are exactly the same.
+    """
     # Infer feature dimension from emb_arr
-    dim = emb_arr.shape[1]
+    dim = emb_arr.shape[1] * 8
 
     # Cast embeddings to float32 (Faiss only support this)
-    emb_arr = emb_arr.astype(np.float32)
-
-    # Normalize the emb arr in place
-    faiss.normalize_L2(emb_arr)
+    emb_arr = emb_arr.astype(np.uint8)
 
     # Initialize Faiss Index
-    index = faiss.IndexFlatIP(dim)
+    index = faiss.IndexBinaryFlat(dim)
     index.add(emb_arr)
 
-    # Search for neighbours with cos similarity > threshold
-    lims, distances, indices = index.range_search(
-        emb_arr[query_idx], thresh=thresh)
+    # Find neighbors
+    chunks = np.ceil(len(query_idx) / chunksize).astype(int)
 
-    return lims, distances, indices
+    for i in tqdm(range(chunks), total=chunks, desc='>> Finding Neighbours'):
+
+        query_idx_sub = query_idx[i*chunksize:(i+1)*chunksize]
+
+        chunk_dists, chunk_indices = index.search(
+            emb_arr[query_idx_sub], neighbors)
+
+        if i == 0:
+            dists = chunk_dists
+            indices = chunk_indices
+        else:
+            dists = np.row_stack([dists, chunk_dists])
+            indices = np.row_stack([indices, chunk_indices])
+
+    # Change dist to similarity
+    dists = 1 - (dists / dim)
+
+    return dists, indices
 
 
 def get_similar_items(
         df: pd.DataFrame, emb: np.ndarray, val_idx: List,
         idx_to_id_col_mapping: Dict, id_col: str = 'posting_id',
+        metric: str = 'cosine',
         n: int = 50, chunksize: int = 512) -> pd.DataFrame:
     """
     Given a `df`, its embeddings `emb` (must be of the same length as `df`),
@@ -104,7 +125,9 @@ def get_similar_items(
 
     `id_col` is the item id that is used to identify the neighbors, and
     `idx_to_id_col_mapping` is the row index to id mapping to map the nearest
-    neighbors index (returned by faiss) to the actual item id
+    neighbors index (returned by faiss) to the actual item id.
+
+    `metric` should be either cosine or hamming.
 
     After search, a similarity df `sim_df` is returned, which contains the
     row index, distance and item id of each row's top n neighbors.
@@ -119,8 +142,12 @@ def get_similar_items(
         f'{max(val_idx)} is out of range for'\
         f'df of shape {df.shape}'
 
-    distances, indices = faiss_knn(
-        emb, val_idx, n, chunksize)
+    if metric == 'cosine':
+        distances, indices = faiss_knn_cosine(
+            emb, val_idx, n, chunksize)
+    elif metric == 'hamming':
+        distances, indices = faiss_knn_hamming(
+            emb, val_idx, n, chunksize)
 
     sim_df_base = df.loc[val_idx, [id_col]].reset_index(drop=True).copy()
     sim_df_base['neighbors'] = val_idx
@@ -160,8 +187,9 @@ def find_best_f1_score(
 
     best_score, best_thres = -1., -1.
 
-    for thres in tqdm(np.arange(thres_min, thres_max+0.01, thres_step),
-                      desc='>> Finding Best Thres'):
+    for thres in tqdm(
+            np.arange(thres_min, thres_max + (thres_step/10.), thres_step),
+            desc='>> Finding Best Thres'):
 
         score = eval_score_at_thres(sim_df, truth_df, thres)
 

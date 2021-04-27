@@ -51,3 +51,4 @@ class NLPConfig(ModelConfig):
 class IMGConfig(ModelConfig):
     img_dim: int
     pretrained_model_path: FilePath
+    feature_dim: int

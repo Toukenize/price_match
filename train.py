@@ -46,11 +46,11 @@ def parse_args():
             """
     )
     parser.add_argument(
-        '--trainfolds', nargs='+', type=int, default=list(range(10)),
+        '--trainfolds', nargs='+', type=int, default=list(range(4)),
         help="""
             Specify the fold numbers to train (zero-index). Fold number cannot
             be larger than `split`
-            Default = [0, 1, 2, 3, ... 9]
+            Default = [0, 1, 2, 3]
             """
     )
     parser.add_argument(
@@ -126,6 +126,7 @@ def main():
                 config.pretrained_model_path,
                 num_classes=num_classes,
                 dropout=config.dropout_prob,
+                feature_dim=config.feature_dim,
                 margin_func=margin_func,
                 **margin_params)
 
@@ -185,6 +186,16 @@ def main():
                     model.state_dict(),
                     model_out_path / model_name)
                 best_train_loss = avg_train_loss
+
+            # Additional checkpoints
+            checkpoint_range = [(1.1, 2.0), (0.6, 1.0), (0.1, 0.3)]
+
+            for lb, ub in checkpoint_range:
+                if lb < avg_train_loss < ub:
+                    model_name = f'fold_{fold_num + 1}_{lb:.2f}-{ub:.2f}.pt'
+                    torch.save(
+                        model.state_dict(),
+                        model_out_path / model_name)
 
     return
 

@@ -9,7 +9,7 @@ from src.metrics.utils import (
     get_similar_items, find_best_f1_score, eval_top_k_accuracy)
 
 
-def train_loop(model, dataloader, optimizer, device,
+def train_loop(model, dataloader, optimizer, device, neptune_run=None,
                scheduler=None, epoch_info=''):
 
     criterion = nn.CrossEntropyLoss()
@@ -30,6 +30,9 @@ def train_loop(model, dataloader, optimizer, device,
             lr = scheduler.get_lr()[0]
         else:
             lr = optimizer.param_groups[0]['lr']
+
+        if neptune_run is not None:
+            neptune_run[f'{epoch_info.split(",")[0]} LR'].log(lr)
 
         pbar.set_description(
             f'>> {epoch_info} - Train Loss : {loss.item():.4f} LR : {lr:.1e}')
