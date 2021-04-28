@@ -50,6 +50,33 @@ def train_loop(model, dataloader, optimizer, device, neptune_run=None,
     return losses
 
 
+def val_loop(model, dataloader, device,
+             epoch_info=''):
+
+    criterion = nn.CrossEntropyLoss()
+    model.eval()
+    losses = []
+    pbar = tqdm(enumerate(dataloader), total=len(dataloader))
+
+    for i, data in pbar:
+
+        data = dict((k, v.to(device)) for k, v in data.items())
+        target = data.pop('label')
+
+        # Compute output & loss
+        with torch.no_grad():
+            logits = model.forward(label=target, **data)
+
+        loss = criterion(logits, target)
+
+        pbar.set_description(
+            f'>> {epoch_info} - Val Loss   : {loss.item():.4f}')
+
+        losses.append(loss.item())
+
+    return losses
+
+
 def generate_embeddings(model, dataloader, device, feature_dim):
 
     model.eval()
@@ -77,7 +104,7 @@ def generate_embeddings(model, dataloader, device, feature_dim):
     return emb_arr
 
 
-def validate_w_knn(model, dataloader, device,
+def val_w_knn_loop(model, dataloader, device,
                    feature_dim=768, optimize=True, **knn_params):
 
     emb_arr = generate_embeddings(model, dataloader, device, feature_dim)

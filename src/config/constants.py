@@ -6,7 +6,7 @@ from src.config.base_model_config import NLPConfig, IMGConfig
 DATA_FOLDER = Path('data/raw')
 IMG_FOLDER = Path('data/resize')
 TRAIN_IMG_FOLDER = IMG_FOLDER / 'train_images_384'
-DATA_SPLIT_PATH = DATA_FOLDER / 'train_split_v3.csv'
+DATA_SPLIT_PATH = DATA_FOLDER / 'train_split_v4.csv'
 
 # Pretrained model paths
 MODEL_FOLDER = Path('model')
@@ -17,7 +17,7 @@ PRETRAINED_IMG = (MODEL_FOLDER / 'efficient_net_b0' /
 
 # Output paths
 NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_v4'
-IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_v2'
+IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_2folds_v1'
 
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
     if not path.exists():
@@ -51,15 +51,15 @@ NLP_CONFIG = NLPConfig(
 
 # IMG Configs
 IMG_CONFIG = IMGConfig(
-    epochs=60,
+    epochs=30,
     dropout_prob=0.15,
     learning_rate=1e-4,
     train_batch_size=16,
     val_batch_size=64,
     scheduler='cosine_decay_w_warmup',
     scheduler_params={
-        "num_warmup_epochs": 5,
-        "num_training_epochs": 55,
+        "num_warmup_epochs": 3,
+        "num_training_epochs": 27,
         "num_cycles": 0.4},
     optimizer='adamw',
     loss_fn='arcmargin',

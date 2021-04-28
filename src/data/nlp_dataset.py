@@ -62,7 +62,9 @@ def get_data_loader(
 def get_nlp_train_val_loaders(
         nlp_config: NLPConfig,
         train_df: pd.DataFrame,
-        val_df: pd.DataFrame):
+        val_df: pd.DataFrame,
+        val_w_knn: bool = True
+):
 
     train_loader = get_data_loader(
         train_df, text_col='title', label_col='label_group',
@@ -70,8 +72,13 @@ def get_nlp_train_val_loaders(
         pretrained_model_name_or_path=nlp_config.pretrained_tokenizer_folder,
         model_max_length=nlp_config.model_max_length)
 
+    if val_w_knn:
+        val_label_col = None
+    else:
+        val_label_col = 'label_group'
+
     val_loader = get_data_loader(
-        val_df, text_col='title', label_col=None,
+        val_df, text_col='title', label_col=val_label_col,
         shuffle=False, batch_size=nlp_config.val_batch_size,
         pretrained_model_name_or_path=nlp_config.pretrained_tokenizer_folder,
         model_max_length=nlp_config.model_max_length)

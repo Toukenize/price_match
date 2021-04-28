@@ -95,7 +95,9 @@ def get_data_loader(
 def get_img_train_val_loaders(
         img_config: IMGConfig,
         train_df: pd.DataFrame,
-        val_df: pd.DataFrame):
+        val_df: pd.DataFrame,
+        val_w_knn: bool = True
+):
 
     train_loader = get_data_loader(
         train_df,
@@ -104,10 +106,15 @@ def get_img_train_val_loaders(
         img_path_col='image', label_col='label_group',
         shuffle=True, batch_size=img_config.train_batch_size)
 
+    if val_w_knn:
+        val_label_col = None
+    else:
+        val_label_col = 'label_group'
+
     val_loader = get_data_loader(
         val_df, img_dim=img_config.img_dim,
         img_folder=TRAIN_IMG_FOLDER,
-        img_path_col='image', label_col=None,
+        img_path_col='image', label_col=val_label_col,
         shuffle=False, batch_size=img_config.val_batch_size)
 
     return train_loader, val_loader
