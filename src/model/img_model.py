@@ -11,8 +11,15 @@ class ShopeeIMGModel(nn.Module):
         self.feature_dim = feature_dim
 
         self.model = torch.load(model_path)
-        self.model.classifier = nn.Identity()
-        self.model.global_pool = nn.Identity()
+
+        if 'efficientnet' in model_path:
+            self.model.classifier = nn.Identity()
+            self.model.global_pool = nn.Identity()
+
+        elif 'nfnet' in model_path:
+            self.model.head.fc = nn.Identity()
+            self.model.head.global_pool = nn.Identity()
+
         self.pooling = nn.AdaptiveAvgPool2d(1)
         self.dropout = nn.Dropout(dropout)
         self.lin = nn.Linear(self.model.num_features, self.feature_dim)
