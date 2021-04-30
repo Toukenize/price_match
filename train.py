@@ -160,7 +160,7 @@ def main():
 
         best_f1_score = 0.00
         best_train_loss = 10_000
-        best_val_loss = 0.00
+        best_val_loss = 10_000
 
         for epoch_num in range(epochs):
 
@@ -196,7 +196,7 @@ def main():
             else:
                 val_losses = val_loop(
                     model=model, dataloader=val_loader,
-                    device=device, epoch_info='')
+                    device=device, epoch_info=epoch_info)
                 avg_val_loss = np.mean(val_losses)
                 run[f'Fold_{fold_num + 1}_Val_Loss'].log(avg_val_loss)
 
