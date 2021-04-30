@@ -68,13 +68,13 @@ def parse_args():
             """
     )
     parser.add_argument(
-        '--val', type=bool, default=True,
+        '--val', type=str, default='true', choices=['true', 'false'],
         help="""
             Specify whether to use any validation set. If False,
             no validation set is used, and --cv_type and --trainfolds
             will be ignored.
 
-            Default = True
+            Default = true
             """
     )
 
@@ -90,7 +90,7 @@ def main():
     env = args.env
     sample = args.sample
     model_type = args.model_type
-    val = args.val
+    val = True if args.val == 'true' else False
 
     if val:
         folds_to_train = args.trainfolds
@@ -101,7 +101,7 @@ def main():
             val_w_knn = False
 
     else:
-        folds_to_train = ['Train All Data']
+        folds_to_train = [-1]
 
     if model_type == 'img':
 
@@ -142,7 +142,6 @@ def main():
 
         if sample != 1.0:
             train_df = train_df.sample(frac=sample, random_state=2021)
-
             if val:
                 val_df = val_df.sample(frac=sample, random_state=2021)
 
