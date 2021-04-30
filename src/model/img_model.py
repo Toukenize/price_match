@@ -12,11 +12,11 @@ class ShopeeIMGModel(nn.Module):
 
         self.model = torch.load(model_path)
 
-        if 'efficientnet' in model_path:
+        if 'efficientnet' in model_path.name:
             self.model.classifier = nn.Identity()
             self.model.global_pool = nn.Identity()
 
-        elif 'nfnet' in model_path:
+        elif 'nfnet' in model_path.name:
             self.model.head.fc = nn.Identity()
             self.model.head.global_pool = nn.Identity()
 
