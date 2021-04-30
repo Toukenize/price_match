@@ -5,7 +5,7 @@ import neptune.new as neptune
 import numpy as np
 
 from src.train.loops import train_loop, val_w_knn_loop, val_loop
-from src.data.utils import get_train_val_data
+from src.data.utils import get_train_val_data, get_train_data_only
 from src.train.utils import get_optim_scheduler, get_margin_func_and_params
 from src.config.base_model_config import BaseModel
 from src.config.constants import KNN_CHUNKSIZE
@@ -67,6 +67,16 @@ def parse_args():
             Default = nlp
             """
     )
+    parser.add_argument(
+        '--val', type=bool, default=True,
+        help="""
+            Specify whether to use any validation set. If False,
+            no validation set is used, and --cv_type and --trainfolds
+            will be ignored.
+
+            Default = True
+            """
+    )
 
     args = parser.parse_args()
 
@@ -79,14 +89,19 @@ def main():
     args = parse_args()
     env = args.env
     sample = args.sample
-    folds_to_train = args.trainfolds
     model_type = args.model_type
-    cv_type = args.cv_type
+    val = args.val
 
-    if cv_type == 'group':
-        val_w_knn = True
+    if val:
+        folds_to_train = args.trainfolds
+        cv_type = args.cv_type
+        if cv_type == 'group':
+            val_w_knn = True
+        else:
+            val_w_knn = False
+
     else:
-        val_w_knn = False
+        folds_to_train = ['Train All Data']
 
     if model_type == 'img':
 
@@ -119,15 +134,29 @@ def main():
     for fold_num in folds_to_train:
 
         # Init df based on split and fold number
-        train_df, val_df = get_train_val_data(
-            fold_num, data_col=data_col)
+        if val:
+            train_df, val_df = get_train_val_data(
+                fold_num, data_col=data_col)
+        else:
+            train_df = get_train_data_only(data_col=data_col)
+
         if sample != 1.0:
             train_df = train_df.sample(frac=sample, random_state=2021)
-            val_df = val_df.sample(frac=sample, random_state=2021)
+
+            if val:
+                val_df = val_df.sample(frac=sample, random_state=2021)
 
         # Init dataloaders and model-related stuff
-        train_loader, val_loader = get_train_val_loaders(
-            config, train_df, val_df, val_w_knn=val_w_knn)
+
+        if val:
+            train_loader, val_loader = get_train_val_loaders(
+                config, train_df, val_df, val_w_knn=val_w_knn)
+        else:
+
+            train_loader, _ = get_train_val_loaders(
+                config, train_df, train_df
+            )
+
         num_classes = train_df['label_group'].nunique()
 
         torch.manual_seed(2021)  # For reproducibility
@@ -176,37 +205,38 @@ def main():
 
             run[f'Fold_{fold_num + 1}_Train_Loss'].log(avg_train_loss)
 
-            if val_w_knn:
-                val_acc, val_f1_score, f1_score_thres = val_w_knn_loop(
-                    model=model, dataloader=val_loader, device=device,
-                    feature_dim=model.feature_dim, optimize=True,
-                    n=50, chunksize=KNN_CHUNKSIZE)
+            if val:
+                if val_w_knn:
+                    val_acc, val_f1_score, f1_score_thres = val_w_knn_loop(
+                        model=model, dataloader=val_loader, device=device,
+                        feature_dim=model.feature_dim, optimize=True,
+                        n=50, chunksize=KNN_CHUNKSIZE)
 
-                run[f'Fold_{fold_num + 1}_KNN_Thres'].log(f1_score_thres)
-                run[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_f1_score)
-                run[f'Fold_{fold_num + 1}_Val_Accuracy'].log(val_acc)
+                    run[f'Fold_{fold_num + 1}_KNN_Thres'].log(f1_score_thres)
+                    run[f'Fold_{fold_num + 1}_Val_F1_Score'].log(val_f1_score)
+                    run[f'Fold_{fold_num + 1}_Val_Accuracy'].log(val_acc)
 
-                # Save model if val_f1_score improved
-                if val_f1_score > best_f1_score:
-                    model_name = f'fold_{fold_num + 1}_best_f1.pt'
-                    torch.save(
-                        model.state_dict(),
-                        model_out_path / model_name)
-                    best_f1_score = val_f1_score
-            else:
-                val_losses = val_loop(
-                    model=model, dataloader=val_loader,
-                    device=device, epoch_info=epoch_info)
-                avg_val_loss = np.mean(val_losses)
-                run[f'Fold_{fold_num + 1}_Val_Loss'].log(avg_val_loss)
+                    # Save model if val_f1_score improved
+                    if val_f1_score > best_f1_score:
+                        model_name = f'fold_{fold_num + 1}_best_f1.pt'
+                        torch.save(
+                            model.state_dict(),
+                            model_out_path / model_name)
+                        best_f1_score = val_f1_score
+                else:
+                    val_losses = val_loop(
+                        model=model, dataloader=val_loader,
+                        device=device, epoch_info=epoch_info)
+                    avg_val_loss = np.mean(val_losses)
+                    run[f'Fold_{fold_num + 1}_Val_Loss'].log(avg_val_loss)
 
-                # Save model if best train loss improved
-                if avg_val_loss < best_val_loss:
-                    model_name = f'fold_{fold_num + 1}_best_val_loss.pt'
-                    torch.save(
-                        model.state_dict(),
-                        model_out_path / model_name)
-                    best_val_loss = avg_val_loss
+                    # Save model if best train loss improved
+                    if avg_val_loss < best_val_loss:
+                        model_name = f'fold_{fold_num + 1}_best_val_loss.pt'
+                        torch.save(
+                            model.state_dict(),
+                            model_out_path / model_name)
+                        best_val_loss = avg_val_loss
 
             # Save model if best train loss improved
             if avg_train_loss < best_train_loss:

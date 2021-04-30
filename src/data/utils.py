@@ -85,3 +85,13 @@ def get_train_val_data(fold_num, data_col='title'):
     )
 
     return train_df[out_cols], val_df[out_cols]
+
+
+def get_train_data_only(data_col='title'):
+    """
+    Use all data as train set.
+    """
+    out_cols = ['posting_id', data_col, 'label_group']
+    df = pd.read_csv(DATA_SPLIT_PATH)
+
+    return df[out_cols]
