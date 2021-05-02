@@ -5,8 +5,8 @@ from src.config.base_model_config import NLPConfig, IMGConfig
 # Data paths
 DATA_FOLDER = Path('data/raw')
 IMG_FOLDER = Path('data/resize')
-TRAIN_IMG_FOLDER = IMG_FOLDER / 'train_images_384'
-DATA_SPLIT_PATH = DATA_FOLDER / 'train_split_v4.csv'
+TRAIN_IMG_FOLDER = IMG_FOLDER / 'train_images_512'
+DATA_SPLIT_PATH = DATA_FOLDER / 'train_split_v3.csv'
 
 # Pretrained model paths
 MODEL_FOLDER = Path('model')
@@ -51,20 +51,20 @@ NLP_CONFIG = NLPConfig(
 
 # IMG Configs
 IMG_CONFIG = IMGConfig(
-    epochs=30,
+    epochs=20,
     dropout_prob=0.15,
     learning_rate=6e-5,
-    train_batch_size=16,
-    val_batch_size=64,
+    train_batch_size=8,
+    val_batch_size=32,
     scheduler='cosine_decay_w_warmup',
     scheduler_params={
         "num_warmup_epochs": 3,
-        "num_training_epochs": 27,
+        "num_training_epochs": 17,
         "num_cycles": 0.4},
     optimizer='adamw',
     loss_fn='arcmargin',
     loss_params={"m": 0.5, "s": 30.0, "easy_margin": False},
     pretrained_model_path=PRETRAINED_IMG,
-    img_dim=384,
+    img_dim=512,
     feature_dim=512
 )

@@ -87,7 +87,7 @@ def get_data_loader(
 
     dataloader = DataLoader(dataset, shuffle=shuffle,
                             batch_size=batch_size, num_workers=NUM_WORKER,
-                            pin_memory=True)
+                            pin_memory=True, drop_last=True)
 
     return dataloader
 

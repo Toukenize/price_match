@@ -54,7 +54,7 @@ def get_data_loader(
     dataset = PriceMatchNLPData(df, text_col, label_col, **tokenizer_args)
     dataloader = DataLoader(dataset, shuffle=shuffle,
                             batch_size=batch_size, num_workers=NUM_WORKER,
-                            pin_memory=True)
+                            pin_memory=True, drop_last=True)
 
     return dataloader
 
