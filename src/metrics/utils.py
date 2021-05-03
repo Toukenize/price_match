@@ -62,6 +62,50 @@ def faiss_knn_cosine(
     return dists, indices
 
 
+def faiss_knn_euclidean(
+        emb_arr: np.ndarray,
+        query_idx: List,
+        neighbors: int = 50,
+        chunksize: int = 512) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Note:
+        The euclidean distance is being measure here. 0 means both
+        items are exactly the same.
+    """
+    # Infer feature dimension from emb_arr
+    dim = emb_arr.shape[1]
+
+    # Cast embeddings to float32 (Faiss only support this)
+    emb_arr = emb_arr.astype(np.float32)
+
+    # Initialize Faiss Index
+    index = faiss.IndexFlatL2(dim)
+    index.add(emb_arr)
+
+    # Find neighbors
+
+    chunks = np.ceil(len(query_idx) / chunksize).astype(int)
+
+    for i in tqdm(range(chunks), total=chunks, desc='>> Finding Neighbours'):
+
+        query_idx_sub = query_idx[i*chunksize:(i+1)*chunksize]
+
+        chunk_dists, chunk_indices = index.search(
+            emb_arr[query_idx_sub], neighbors)
+
+        if i == 0:
+            dists = chunk_dists
+            indices = chunk_indices
+        else:
+            dists = np.row_stack([dists, chunk_dists])
+            indices = np.row_stack([indices, chunk_indices])
+
+    # Square root to get actual euclidean dist
+    dists = np.sqrt(dists)
+
+    return dists, indices
+
+
 def faiss_knn_hamming(
         emb_arr: np.ndarray,
         query_idx: List,
@@ -142,16 +186,26 @@ def get_similar_items(
         f'{max(val_idx)} is out of range for'\
         f'df of shape {df.shape}'
 
+    assert metric in ['cosine', 'hamming', 'euclidean'],\
+        f'{metric} is invalid. Supported metrics : cosine, hamming, euclidean'
+
     if metric == 'cosine':
         distances, indices = faiss_knn_cosine(
             emb, val_idx, n, chunksize)
     elif metric == 'hamming':
         distances, indices = faiss_knn_hamming(
             emb, val_idx, n, chunksize)
+    elif metric == 'euclidean':
+        distances, indices = faiss_knn_euclidean(
+            emb, val_idx, n, chunksize)
 
     sim_df_base = df.loc[val_idx, [id_col]].reset_index(drop=True).copy()
     sim_df_base['neighbors'] = val_idx
-    sim_df_base['distances'] = 1.0
+
+    if metric == 'euclidean':
+        sim_df_base['distances'] = 0.0
+    else:
+        sim_df_base['distances'] = 1.0
 
     sim_df = sim_df_base.copy()
 
@@ -183,7 +237,15 @@ def get_similar_items(
 def find_best_f1_score(
         sim_df: pd.DataFrame, truth_df: pd.DataFrame,
         thres_min: float = 0.2, thres_max: float = 0.9,
-        thres_step: float = 0.02) -> Tuple[float, float]:
+        thres_step: float = 0.02,
+        more_than_thres: bool = True) -> Tuple[float, float]:
+    """
+    If Euclidean distance is used, `more_than_thres` should be set to False,
+    such that neighbors are those with less than the threshold given.
+
+    When hamming distance or cosine distance is used, `more_than_thres` should
+    be set to True.
+    """
 
     best_score, best_thres = -1., -1.
 
@@ -191,7 +253,7 @@ def find_best_f1_score(
             np.arange(thres_min, thres_max + (thres_step/10.), thres_step),
             desc='>> Finding Best Thres'):
 
-        score = eval_score_at_thres(sim_df, truth_df, thres)
+        score = eval_score_at_thres(sim_df, truth_df, thres, more_than_thres)
 
         if score > best_score:
             best_score = score
@@ -201,11 +263,17 @@ def find_best_f1_score(
 
 
 def eval_score_at_thres(sim_df: pd.DataFrame, truth_df: pd.DataFrame,
-                        thres: float) -> float:
+                        thres: float, more_than_thres: bool = True) -> float:
     """
     Given `sim_df` which contains nearest neighbours info and distances
     and `truth_df` which contains the ground truth neighbours of items in
     `sim_df`, calculate the f1 score at threshold distance `thres`.
+
+    If Euclidean distance is used, `more_than_thres` should be set to False,
+    such that neighbors are those with less than the threshold given.
+
+    When hamming distance or cosine distance is used, `more_than_thres` should
+    be set to True.
     """
 
     unique_ids = sim_df['posting_id'].unique()
@@ -221,7 +289,10 @@ def eval_score_at_thres(sim_df: pd.DataFrame, truth_df: pd.DataFrame,
     for col in ['ground_truth', 'posting_id']:
         assert col in truth_df.columns, f'Column `{col}` not in truth_df'
 
-    sel = (sim_df['distances'] > thres)
+    if more_than_thres:
+        sel = (sim_df['distances'] > thres)
+    else:
+        sel = (sim_df['distances'] < thres)
 
     sim_items_sets = (
         sim_df
@@ -246,14 +317,14 @@ def eval_score_at_thres(sim_df: pd.DataFrame, truth_df: pd.DataFrame,
 
 def eval_top_k_accuracy(
         sim_df: pd.DataFrame, truth_df: pd.DataFrame,
-        top_k: int = 1) -> float:
+        top_k: int = 1, ascending=False) -> float:
 
     sel = sim_df['posting_id'] != sim_df['matches']
 
     closest_df = (
         sim_df
         .loc[sel]
-        .sort_values('distances', ascending=False)
+        .sort_values('distances', ascending=ascending)
         .groupby('posting_id', as_index=False)
         .nth(list(range(top_k)))
     )

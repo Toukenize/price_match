@@ -16,8 +16,8 @@ PRETRAINED_IMG = (MODEL_FOLDER / 'efficient_net_b0' /
                   'pretrained' / 'efficientnet_b0.pth')
 
 # Output paths
-NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_2folds_v1'
-IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_2folds_v1'
+NLP_MODEL_PATH = MODEL_FOLDER / 'indobert_lite_p2' / 'emb_model_4_folds_group'
+IMG_MODEL_PATH = MODEL_FOLDER / 'efficient_net_b0' / 'emb_model_4_folds_group'
 
 for path in [NLP_MODEL_PATH, IMG_MODEL_PATH]:
     if not path.exists():
@@ -54,7 +54,7 @@ IMG_CONFIG = IMGConfig(
     epochs=20,
     dropout_prob=0.15,
     learning_rate=6e-5,
-    train_batch_size=8,
+    train_batch_size=12,
     val_batch_size=32,
     scheduler='cosine_decay_w_warmup',
     scheduler_params={

@@ -77,7 +77,7 @@ def val_loop(model, dataloader, device,
     return losses
 
 
-def generate_embeddings(model, dataloader, device, feature_dim):
+def generate_embeddings(model, dataloader, device, feature_dim, **kwargs):
 
     model.eval()
     pbar = tqdm(
@@ -95,7 +95,7 @@ def generate_embeddings(model, dataloader, device, feature_dim):
 
         # Compute output & loss
         with torch.no_grad():
-            features = model.extract_features(**data)
+            features = model.extract_features(**data, **kwargs)
 
         features = features.cpu().numpy()
 

@@ -36,13 +36,15 @@ class ShopeeIMGModel(nn.Module):
 
         return x
 
-    def extract_features(self, image):
+    def extract_features(self, image, use_bn=True):
 
         batch_size = image.shape[0]
         x = self.model(image)
         x = self.pooling(x).view(batch_size, -1)
         x = self.dropout(x)
         x = self.lin(x)
-        x = self.bn(x)
+
+        if use_bn:
+            x = self.bn(x)
 
         return x
