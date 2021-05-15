@@ -9,17 +9,17 @@
 
    > Utility function to export .yml : `conda env export | grep -v "^prefix: " > env.yml`
 
-### If you are going to use `jupyter notebook`
+#### If you are going to use `jupyter notebook`
 
 1. Activate your environment `conda activate price_match_env` 
 2. Install the kernel `python -m ipykernel install --user --display_name "price_match_env"`
 3. Spin off your jupyter notebook as usual `jupyter notebook`
 
-## 2. Test Your Environment
+### Testing Your Environment
 
 Normally, only GPU-dependent modules are problematic.
 
-### Test `Tensorflow` installation:
+#### Test `Tensorflow` installation:
 
 1. Activate the environment `conda activate price_match`
 2. Bring up python shell `python`
@@ -28,12 +28,12 @@ Normally, only GPU-dependent modules are problematic.
 
 
 
-### Test `Pytorch` installation:
+#### Test `Pytorch` installation:
 
 1. Step 1 and 2 of test `tensorflow` installation
 2. Import and check `import torch ; torch.cuda.get_device_name() # Should return your NVIDA GPU name`
 
-### Test `Xgboost` installation:
+#### Test `Xgboost` installation:
 
 1. Step 1 and 2 of test `tensorflow` installation
 
@@ -99,3 +99,22 @@ data
     └── train_split_v3.csv
 
 ```
+
+## Training all models
+
+- Simply run `bash train_model.sh`
+- The following models will be run:
+    1. Indobert Lite P2 (NLP) is trained using all data (i.e. no validation)
+    2. Efficientnet B3 (IMG) is trained using 4 folds validation (Grouped K Fold - each fold consists of unique label groups)
+
+## Kaggle Notebooks
+- Both training and inference notebooks are provided in `kaggle_notebooks`
+
+### Training Notebook
+- To train models on Kaggle environment, you need to provide your Github and Neptune tokens using Kaggle Secrets (In a new Kaggle notebook, navigate to Add-ons -> Secrets; Make sure internet access is enabled)
+
+### Submission/ Inference Notebook
+- For submission, since internet access is disabled, you need to install the required packages (`Faiss` and `TIMM`) using the wheels uploaded (use the following or upload your own):
+    - [Faiss](https://www.kaggle.com/reppy4620/faiss-170-latest-cpu-gpu)
+    - [TIMM](https://www.kaggle.com/kozodoi/timm-pytorch-image-models)
+- Also, upload both the pretrained weights and trained weights of the NLP and IMG models to Kaggle as datasets, and attach them to your submission notebook (check that the paths in the notebook are pointing to the right folder - depending on how you named the uploaded files)
