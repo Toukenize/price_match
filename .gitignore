@@ -1,8 +1,8 @@
 .vscode
-/data/
+/data_backup/
 notebook/
 __pycache__/
 .env
 .neptune
 .ipynb_checkpoints
-/model/
+/model_backup/

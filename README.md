@@ -1,6 +1,7 @@
 # Shopee Price Match
 
-## 1. Environment setup
+
+## Environment setup
 
 1. Install environment with `conda install env.yml`
 
@@ -55,5 +56,46 @@ Normally, only GPU-dependent modules are problematic.
            tree_method='gpu_hist', eta=0.1, max_depth=6, verbosity=0)
        trained_model = clf.fit(X, y, verbose=False)
    ```
-   
-   
+
+## Neptune Setup
+
+1. Sign up for a Neptune account [here](https://neptune.ai/).
+2. Get your Neptune API Token (on your neptune.ai console, select your profile icon on the top right corner -> Get Your API Token)
+3. Create a new project (e.g. `My Shopee Price Match Project`)
+4. In your local environment's root, create a `.env` file with the following lines:
+    ```
+    NEPTUNE_TOKEN="<your_api_token>"
+    PROJECT_NAME="<your_neptune_username>/<your_neptune_project_name>"
+    ```
+
+## Data & Model Folder Structure
+
+```
+model
+├── efficient_net_b3
+│   └── pretrained
+│       └── efficientnet_b3.pth
+└── indobert_lite_p2
+    ├── pretrained
+    │   ├── config.json
+    │   ├── pytorch_model.bin
+    │   ├── README.md
+    │   ├── special_tokens_map.json
+    │   ├── tf_model.h5
+    │   ├── tokenizer_config.json
+    │   └── vocab.txt
+    └── tokenizer
+        ├── special_tokens_map.json
+        ├── tokenizer_config.json
+        └── vocab.txt
+```
+```
+data
+└── raw
+    ├── train_images
+    │   ├── 0a0d257d1127f7d4298a7753875b372a.jpg
+    │   ├── 0a1ad1756ba6219eb2359fd3ed2a7082.jpg
+    │   └── 0a1c01e1b84cc6c6655dbf886fd72ead.jpg
+    └── train_split_v3.csv
+
+```
